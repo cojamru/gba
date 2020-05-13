@@ -41,7 +41,7 @@ const IodineGUI = {
         sound: true,
         volume: 1,
         skipBoot: false,
-        toggleSmoothScaling: true,
+        toggleSmoothScaling: false,
         toggleDynamicSpeed: false,
         toggleOffthreadGraphics: true,
         toggleOffthreadCPU:
@@ -181,7 +181,7 @@ function registerBIOS() {
     processDownload(this, attachBIOS);
 }
 function downloadROM(ROM_URL, title) {
-    writeRedTemporaryText('Downloading "' + title + '." Press "Play" when it\'s over');
+    writeRedTemporaryText('Downloading "' + title + '". Press "Play" when it\'s over');
     downloadFile(ROM_URL, registerROM);
 }
 function registerROM() {
