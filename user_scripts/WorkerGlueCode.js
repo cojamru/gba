@@ -9,8 +9,6 @@
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-const tempVar = document.getElementsByTagName('script');
-
 class IodineGBAWorkerShim {
     constructor() {
         this.playStatus = null;
@@ -29,17 +27,12 @@ class IodineGBAWorkerShim {
         this.audioBufferSizeMask = 0;
         this.audioInitialized = false;
         this.timestamp = null;
-        this.filepath = tempVar[tempVar.length - 1].src;
 
         this.initialize();
     }
 
     initialize() {
-        let loc = this.filepath.split('/');
-        loc = loc.slice(0, loc.length - 2).join('/');
-        loc += '/IodineGBA/core/Worker.js';
-
-        this.worker = new Worker(loc);
+        this.worker = new Worker('./IodineGBA/core/Worker.js');
         this.worker.onmessage = event => {
             this.decodeMessage(event.data);
         };
