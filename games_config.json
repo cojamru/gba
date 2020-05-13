@@ -1,104 +1,505 @@
 {
-    "bios": "gba_bios",
-    "games": {
-        "advancewars": "Advance Wars",
-        "advancewars2": "Advance Wars 2",
-        "aladdin": "Aladdin",
-        "alienhominid": "Alien Hominid",
-        "bomberman_max2blue": "Bomberman Max 2 - Blue Advance",
-        "bomberman_tournament": "Bomberman Tournament",
-        "bubblebobble": "Bubble Bobble",
-        "croket1": "Croket! - Yume no Banker Survival!",
-        "croket2": "Croket! 2 - Yami no Bank to Banqueen",
-        "croket3": "Croket! 3 - Granu Oukoku no Nazo",
-        "croket4": "Croket! 4 - Bank no Mori no Mamorigami",
-        "digimon_racing": "Digimon Racing",
-        "dbz_supersonic": "Dragon Ball Z - Supersonic Warriors",
-        "drilldozer": "Drill Dozer",
-        "earthwormjim": "Earthworm Jim",
-        "earthwormjim2": "Earthworm Jim 2",
-        "ff1and2": "Final Fantasy 1 & 2 Advance",
-        "ff4S": "Final Fantasy IV Advance (Sound Restoration Mod)",
-        "ff6": "Final Fantasy VI Advance",
-        "final_fantasy_tactics": "Final Fantasy Tactics Advance",
-        "fire_emblem": "Fire Emblem",
-        "frogger1": "Frogger Advance - The Great Quest",
-        "frogger2": "Frogger's Adventures - Temple of the Frog",
-        "frogger3": "Frogger's Adventures 2 - The Lost Wand",
-        "fzero_gp": "F-Zero - GP Legend",
-        "fzero_max": "F-Zero - Maximum Velocity",
-        "gamewatch4": "Game & Watch Gallery 4",
-        "goldensun": "Golden Sun",
-        "gunstar_super_heroes": "Gunstar Super Heroes",
-        "hamtaro_heartbreak": "Hamtaro - Ham-Ham Heartbreak",
-        "iridion": "Iridion 3D",
-        "kirbymirror": "Kirby & The Amazing Mirror",
-        "kirbynightmare": "Kirby: Nightmare in Dreamland",
-        "mariokart": "Mario Kart: Super Circuit",
-        "marioparty": "Mario Party Advance",
-        "mariopinball": "Mario Pinball Land",
-        "megamanbass": "Megaman & Bass",
-        "megaman_battle1": "Megaman Battle Network 1",
-        "megaman_battle2": "Megaman Battle Network 2",
-        "megaman_battle3_blue": "Megaman Battle Network 3 Blue",
-        "megaman_battle4_blue": "Megaman Battle Network 4 Blue Moon",
-        "megaman_battle4_red": "Megaman Battle Network 4 Red Sun",
-        "megaman_battle5": "Megaman Battle Network 5 Team Protoman",
-        "megaman_battle6": "Megaman Battle Network 6 Cybeast Falzar",
-        "megaman_zero1": "Megaman Zero",
-        "megaman_zero2": "Megaman Zero 2",
-        "megaman_zero3": "Megaman Zero 3",
-        "megaman_zero4": "Megaman Zero 4",
-        "metalslug": "Metal Slug Advance",
-        "metroid_fusion": "Metroid Fusion",
-        "momotarou_dentetsu": "Momotarou Dentetsu G Gold Deck wo Tsukure!",
-        "monopoly": "Monopoly",
-        "monster_force": "Monster Force",
-        "mortal_kombat": "Mortal Kombat Advance",
-        "onepiece": "One Piece",
-        "pacman_world": "Pacman World",
-        "pacman_world2": "Pacman World 2",
-        "pokemonflorasky": "Pokemon Flora Sky Rom Hack",
-        "pokemonemerald": "Pokemon Emerald",
-        "pokemongreen": "Pokemon Leaf Green",
-        "mysteryred": "Pokemon Mystery Dungeon Red",
-        "pokemonruby": "Pokemon Ruby",
-        "pokemonsapphire": "Pokemon Sapphire",
-        "pokemonred": "Pokemon Fire Red",
-        "gba_video_pokemon_1": "Pokemon Video Pak 1",
-        "gba_video_pokemon_2": "Pokemon Video Pak 2",
-        "gba_video_pokemon_3": "Pokemon Video Pak 3",
-        "gba_video_pokemon_4": "Pokemon Video Pak 4",
-        "puyopop": "Puyo Pop",
-        "sonic_advance": "Sonic Advance",
-        "sonic_advance2": "Sonic Advance 2",
-        "sonic_advance3": "Sonic Advance 3",
-        "sonicbattle": "Sonic Battle",
-        "supermonkeyballjr": "Super Monkey Ball Jr",
-        "superstar": "Mario & Luigi: Superstar Saga",
-        "supermarioadvance": "Super Mario Advance",
-        "supermarioadvance2": "Super Mario Advance 2",
-        "supermarioadvance3": "Super Mario Advance 3",
-        "supermarioadvance4": "Super Mario Advance 4",
-        "simpsons": "The Simpsons: Road Rage",
-        "sonicpinball": "Sonic Pinball",
-        "super_street_fighter_2_turbo_revival": "Super Street Fighter II: Turbo Revival",
-        "super_street_fighter_3_alpha": "Super Street Fighter III: Alpha",
-        "tales_of_phantasia": "Tales of Phantasia",
-        "tak2_staff_of_dreams": "Tak 2: The Staff of Dreams",
-        "tetris_worlds": "Tetris Worlds",
-        "tmnt": "Teenage Mutant Ninja Turtles",
-        "sims_bustin_out": "The Sims: Bustin' Out",
-        "sims2": "The Sims 2",
-        "spyro_adventure": "Spyro Adventure",
-        "spyro_ice": "Spyro: Season of Ice",
-        "spyro_flame": "Spyro 2: Season of Flame",
-        "turok_evolution": "Turok Evolution",
-        "ty2": "Ty the Tasmanian Tiger 2 - Bush Rescue",
-        "ty3": "Ty the Tasmanian Tiger 3 - Night of the Quinkan",
-        "warioland4": "Wario Land 4",
-        "wario_ware": "Wario Ware Inc",
-        "zelda_past": "The Legend of Zelda: A Link to the Past",
-        "zelda_minish": "The Legend of Zelda: The Minish Cap"
-    }
+    "bios": "https://jsemu2.github.io/gba/Binaries/gba_bios.bin",
+    "games": [
+        {
+            "key": "graveblood",
+            "title": "Graveblood (demo)",
+            "path": "http://e965.ru/graveblood/graveblood.gba"
+        },
+        {
+            "key": "advancewars",
+            "title": "Advance Wars",
+            "path": "https://jsemu2.github.io/gba/Binaries/advancewars.gba"
+        },
+        {
+            "key": "advancewars2",
+            "title": "Advance Wars 2",
+            "path": "https://jsemu2.github.io/gba/Binaries/advancewars2.gba"
+        },
+        {
+            "key": "aladdin",
+            "title": "Aladdin",
+            "path": "https://jsemu2.github.io/gba/Binaries/aladdin.gba"
+        },
+        {
+            "key": "alienhominid",
+            "title": "Alien Hominid",
+            "path": "https://jsemu2.github.io/gba/Binaries/alienhominid.gba"
+        },
+        {
+            "key": "bomberman_max2blue",
+            "title": "Bomberman Max 2 - Blue Advance",
+            "path": "https://jsemu2.github.io/gba/Binaries/bomberman_max2blue.gba"
+        },
+        {
+            "key": "bomberman_tournament",
+            "title": "Bomberman Tournament",
+            "path": "https://jsemu2.github.io/gba/Binaries/bomberman_tournament.gba"
+        },
+        {
+            "key": "bubblebobble",
+            "title": "Bubble Bobble",
+            "path": "https://jsemu2.github.io/gba/Binaries/bubblebobble.gba"
+        },
+        {
+            "key": "croket1",
+            "title": "Croket! - Yume no Banker Survival!",
+            "path": "https://jsemu2.github.io/gba/Binaries/croket1.gba"
+        },
+        {
+            "key": "croket2",
+            "title": "Croket! 2 - Yami no Bank to Banqueen",
+            "path": "https://jsemu2.github.io/gba/Binaries/croket2.gba"
+        },
+        {
+            "key": "croket3",
+            "title": "Croket! 3 - Granu Oukoku no Nazo",
+            "path": "https://jsemu2.github.io/gba/Binaries/croket3.gba"
+        },
+        {
+            "key": "croket4",
+            "title": "Croket! 4 - Bank no Mori no Mamorigami",
+            "path": "https://jsemu2.github.io/gba/Binaries/croket4.gba"
+        },
+        {
+            "key": "digimon_racing",
+            "title": "Digimon Racing",
+            "path": "https://jsemu2.github.io/gba/Binaries/digimon_racing.gba"
+        },
+        {
+            "key": "dbz_supersonic",
+            "title": "Dragon Ball Z - Supersonic Warriors",
+            "path": "https://jsemu2.github.io/gba/Binaries/dbz_supersonic.gba"
+        },
+        {
+            "key": "drilldozer",
+            "title": "Drill Dozer",
+            "path": "https://jsemu2.github.io/gba/Binaries/drilldozer.gba"
+        },
+        {
+            "key": "earthwormjim",
+            "title": "Earthworm Jim",
+            "path": "https://jsemu2.github.io/gba/Binaries/earthwormjim.gba"
+        },
+        {
+            "key": "earthwormjim2",
+            "title": "Earthworm Jim 2",
+            "path": "https://jsemu2.github.io/gba/Binaries/earthwormjim2.gba"
+        },
+        {
+            "key": "ff1and2",
+            "title": "Final Fantasy 1 & 2 Advance",
+            "path": "https://jsemu2.github.io/gba/Binaries/ff1and2.gba"
+        },
+        {
+            "key": "ff4S",
+            "title": "Final Fantasy IV Advance (Sound Restoration Mod)",
+            "path": "https://jsemu2.github.io/gba/Binaries/ff4S.gba"
+        },
+        {
+            "key": "ff6",
+            "title": "Final Fantasy VI Advance",
+            "path": "https://jsemu2.github.io/gba/Binaries/ff6.gba"
+        },
+        {
+            "key": "final_fantasy_tactics",
+            "title": "Final Fantasy Tactics Advance",
+            "path": "https://jsemu2.github.io/gba/Binaries/final_fantasy_tactics.gba"
+        },
+        {
+            "key": "fire_emblem",
+            "title": "Fire Emblem",
+            "path": "https://jsemu2.github.io/gba/Binaries/fire_emblem.gba"
+        },
+        {
+            "key": "frogger1",
+            "title": "Frogger Advance - The Great Quest",
+            "path": "https://jsemu2.github.io/gba/Binaries/frogger1.gba"
+        },
+        {
+            "key": "frogger2",
+            "title": "Frogger's Adventures - Temple of the Frog",
+            "path": "https://jsemu2.github.io/gba/Binaries/frogger2.gba"
+        },
+        {
+            "key": "frogger3",
+            "title": "Frogger's Adventures 2 - The Lost Wand",
+            "path": "https://jsemu2.github.io/gba/Binaries/frogger3.gba"
+        },
+        {
+            "key": "fzero_gp",
+            "title": "F-Zero - GP Legend",
+            "path": "https://jsemu2.github.io/gba/Binaries/fzero_gp.gba"
+        },
+        {
+            "key": "fzero_max",
+            "title": "F-Zero - Maximum Velocity",
+            "path": "https://jsemu2.github.io/gba/Binaries/fzero_max.gba"
+        },
+        {
+            "key": "gamewatch4",
+            "title": "Game & Watch Gallery 4",
+            "path": "https://jsemu2.github.io/gba/Binaries/gamewatch4.gba"
+        },
+        {
+            "key": "goldensun",
+            "title": "Golden Sun",
+            "path": "https://jsemu2.github.io/gba/Binaries/goldensun.gba"
+        },
+        {
+            "key": "gunstar_super_heroes",
+            "title": "Gunstar Super Heroes",
+            "path": "https://jsemu2.github.io/gba/Binaries/gunstar_super_heroes.gba"
+        },
+        {
+            "key": "hamtaro_heartbreak",
+            "title": "Hamtaro - Ham-Ham Heartbreak",
+            "path": "https://jsemu2.github.io/gba/Binaries/hamtaro_heartbreak.gba"
+        },
+        {
+            "key": "iridion",
+            "title": "Iridion 3D",
+            "path": "https://jsemu2.github.io/gba/Binaries/iridion.gba"
+        },
+        {
+            "key": "kirbymirror",
+            "title": "Kirby & The Amazing Mirror",
+            "path": "https://jsemu2.github.io/gba/Binaries/kirbymirror.gba"
+        },
+        {
+            "key": "kirbynightmare",
+            "title": "Kirby: Nightmare in Dreamland",
+            "path": "https://jsemu2.github.io/gba/Binaries/kirbynightmare.gba"
+        },
+        {
+            "key": "mariokart",
+            "title": "Mario Kart: Super Circuit",
+            "path": "https://jsemu2.github.io/gba/Binaries/mariokart.gba"
+        },
+        {
+            "key": "marioparty",
+            "title": "Mario Party Advance",
+            "path": "https://jsemu2.github.io/gba/Binaries/marioparty.gba"
+        },
+        {
+            "key": "mariopinball",
+            "title": "Mario Pinball Land",
+            "path": "https://jsemu2.github.io/gba/Binaries/mariopinball.gba"
+        },
+        {
+            "key": "megamanbass",
+            "title": "Megaman & Bass",
+            "path": "https://jsemu2.github.io/gba/Binaries/megamanbass.gba"
+        },
+        {
+            "key": "megaman_battle1",
+            "title": "Megaman Battle Network 1",
+            "path": "https://jsemu2.github.io/gba/Binaries/megaman_battle1.gba"
+        },
+        {
+            "key": "megaman_battle2",
+            "title": "Megaman Battle Network 2",
+            "path": "https://jsemu2.github.io/gba/Binaries/megaman_battle2.gba"
+        },
+        {
+            "key": "megaman_battle3_blue",
+            "title": "Megaman Battle Network 3 Blue",
+            "path": "https://jsemu2.github.io/gba/Binaries/megaman_battle3_blue.gba"
+        },
+        {
+            "key": "megaman_battle4_blue",
+            "title": "Megaman Battle Network 4 Blue Moon",
+            "path": "https://jsemu2.github.io/gba/Binaries/megaman_battle4_blue.gba"
+        },
+        {
+            "key": "megaman_battle4_red",
+            "title": "Megaman Battle Network 4 Red Sun",
+            "path": "https://jsemu2.github.io/gba/Binaries/megaman_battle4_red.gba"
+        },
+        {
+            "key": "megaman_battle5",
+            "title": "Megaman Battle Network 5 Team Protoman",
+            "path": "https://jsemu2.github.io/gba/Binaries/megaman_battle5.gba"
+        },
+        {
+            "key": "megaman_battle6",
+            "title": "Megaman Battle Network 6 Cybeast Falzar",
+            "path": "https://jsemu2.github.io/gba/Binaries/megaman_battle6.gba"
+        },
+        {
+            "key": "megaman_zero1",
+            "title": "Megaman Zero",
+            "path": "https://jsemu2.github.io/gba/Binaries/megaman_zero1.gba"
+        },
+        {
+            "key": "megaman_zero2",
+            "title": "Megaman Zero 2",
+            "path": "https://jsemu2.github.io/gba/Binaries/megaman_zero2.gba"
+        },
+        {
+            "key": "megaman_zero3",
+            "title": "Megaman Zero 3",
+            "path": "https://jsemu2.github.io/gba/Binaries/megaman_zero3.gba"
+        },
+        {
+            "key": "megaman_zero4",
+            "title": "Megaman Zero 4",
+            "path": "https://jsemu2.github.io/gba/Binaries/megaman_zero4.gba"
+        },
+        {
+            "key": "metalslug",
+            "title": "Metal Slug Advance",
+            "path": "https://jsemu2.github.io/gba/Binaries/metalslug.gba"
+        },
+        {
+            "key": "metroid_fusion",
+            "title": "Metroid Fusion",
+            "path": "https://jsemu2.github.io/gba/Binaries/metroid_fusion.gba"
+        },
+        {
+            "key": "momotarou_dentetsu",
+            "title": "Momotarou Dentetsu G Gold Deck wo Tsukure!",
+            "path": "https://jsemu2.github.io/gba/Binaries/momotarou_dentetsu.gba"
+        },
+        {
+            "key": "monopoly",
+            "title": "Monopoly",
+            "path": "https://jsemu2.github.io/gba/Binaries/monopoly.gba"
+        },
+        {
+            "key": "monster_force",
+            "title": "Monster Force",
+            "path": "https://jsemu2.github.io/gba/Binaries/monster_force.gba"
+        },
+        {
+            "key": "mortal_kombat",
+            "title": "Mortal Kombat Advance",
+            "path": "https://jsemu2.github.io/gba/Binaries/mortal_kombat.gba"
+        },
+        {
+            "key": "onepiece",
+            "title": "One Piece",
+            "path": "https://jsemu2.github.io/gba/Binaries/onepiece.gba"
+        },
+        {
+            "key": "pacman_world",
+            "title": "Pacman World",
+            "path": "https://jsemu2.github.io/gba/Binaries/pacman_world.gba"
+        },
+        {
+            "key": "pacman_world2",
+            "title": "Pacman World 2",
+            "path": "https://jsemu2.github.io/gba/Binaries/pacman_world2.gba"
+        },
+        {
+            "key": "pokemonflorasky",
+            "title": "Pokemon Flora Sky Rom Hack",
+            "path": "https://jsemu2.github.io/gba/Binaries/pokemonflorasky.gba"
+        },
+        {
+            "key": "pokemonemerald",
+            "title": "Pokemon Emerald",
+            "path": "https://jsemu2.github.io/gba/Binaries/pokemonemerald.gba"
+        },
+        {
+            "key": "pokemongreen",
+            "title": "Pokemon Leaf Green",
+            "path": "https://jsemu2.github.io/gba/Binaries/pokemongreen.gba"
+        },
+        {
+            "key": "mysteryred",
+            "title": "Pokemon Mystery Dungeon Red",
+            "path": "https://jsemu2.github.io/gba/Binaries/mysteryred.gba"
+        },
+        {
+            "key": "pokemonruby",
+            "title": "Pokemon Ruby",
+            "path": "https://jsemu2.github.io/gba/Binaries/pokemonruby.gba"
+        },
+        {
+            "key": "pokemonsapphire",
+            "title": "Pokemon Sapphire",
+            "path": "https://jsemu2.github.io/gba/Binaries/pokemonsapphire.gba"
+        },
+        {
+            "key": "pokemonred",
+            "title": "Pokemon Fire Red",
+            "path": "https://jsemu2.github.io/gba/Binaries/pokemonred.gba"
+        },
+        {
+            "key": "gba_video_pokemon_1",
+            "title": "Pokemon Video Pak 1",
+            "path": "https://jsemu2.github.io/gba/Binaries/gba_video_pokemon_1.gba"
+        },
+        {
+            "key": "gba_video_pokemon_2",
+            "title": "Pokemon Video Pak 2",
+            "path": "https://jsemu2.github.io/gba/Binaries/gba_video_pokemon_2.gba"
+        },
+        {
+            "key": "gba_video_pokemon_3",
+            "title": "Pokemon Video Pak 3",
+            "path": "https://jsemu2.github.io/gba/Binaries/gba_video_pokemon_3.gba"
+        },
+        {
+            "key": "gba_video_pokemon_4",
+            "title": "Pokemon Video Pak 4",
+            "path": "https://jsemu2.github.io/gba/Binaries/gba_video_pokemon_4.gba"
+        },
+        {
+            "key": "puyopop",
+            "title": "Puyo Pop",
+            "path": "https://jsemu2.github.io/gba/Binaries/puyopop.gba"
+        },
+        {
+            "key": "sonic_advance",
+            "title": "Sonic Advance",
+            "path": "https://jsemu2.github.io/gba/Binaries/sonic_advance.gba"
+        },
+        {
+            "key": "sonic_advance2",
+            "title": "Sonic Advance 2",
+            "path": "https://jsemu2.github.io/gba/Binaries/sonic_advance2.gba"
+        },
+        {
+            "key": "sonic_advance3",
+            "title": "Sonic Advance 3",
+            "path": "https://jsemu2.github.io/gba/Binaries/sonic_advance3.gba"
+        },
+        {
+            "key": "sonicbattle",
+            "title": "Sonic Battle",
+            "path": "https://jsemu2.github.io/gba/Binaries/sonicbattle.gba"
+        },
+        {
+            "key": "supermonkeyballjr",
+            "title": "Super Monkey Ball Jr",
+            "path": "https://jsemu2.github.io/gba/Binaries/supermonkeyballjr.gba"
+        },
+        {
+            "key": "superstar",
+            "title": "Mario & Luigi: Superstar Saga",
+            "path": "https://jsemu2.github.io/gba/Binaries/superstar.gba"
+        },
+        {
+            "key": "supermarioadvance",
+            "title": "Super Mario Advance",
+            "path": "https://jsemu2.github.io/gba/Binaries/supermarioadvance.gba"
+        },
+        {
+            "key": "supermarioadvance2",
+            "title": "Super Mario Advance 2",
+            "path": "https://jsemu2.github.io/gba/Binaries/supermarioadvance2.gba"
+        },
+        {
+            "key": "supermarioadvance3",
+            "title": "Super Mario Advance 3",
+            "path": "https://jsemu2.github.io/gba/Binaries/supermarioadvance3.gba"
+        },
+        {
+            "key": "supermarioadvance4",
+            "title": "Super Mario Advance 4",
+            "path": "https://jsemu2.github.io/gba/Binaries/supermarioadvance4.gba"
+        },
+        {
+            "key": "simpsons",
+            "title": "The Simpsons: Road Rage",
+            "path": "https://jsemu2.github.io/gba/Binaries/simpsons.gba"
+        },
+        {
+            "key": "sonicpinball",
+            "title": "Sonic Pinball",
+            "path": "https://jsemu2.github.io/gba/Binaries/sonicpinball.gba"
+        },
+        {
+            "key": "super_street_fighter_2_turbo_revival",
+            "title": "Super Street Fighter II: Turbo Revival",
+            "path": "https://jsemu2.github.io/gba/Binaries/super_street_fighter_2_turbo_revival.gba"
+        },
+        {
+            "key": "super_street_fighter_3_alpha",
+            "title": "Super Street Fighter III: Alpha",
+            "path": "https://jsemu2.github.io/gba/Binaries/super_street_fighter_3_alpha.gba"
+        },
+        {
+            "key": "tales_of_phantasia",
+            "title": "Tales of Phantasia",
+            "path": "https://jsemu2.github.io/gba/Binaries/tales_of_phantasia.gba"
+        },
+        {
+            "key": "tak2_staff_of_dreams",
+            "title": "Tak 2: The Staff of Dreams",
+            "path": "https://jsemu2.github.io/gba/Binaries/tak2_staff_of_dreams.gba"
+        },
+        {
+            "key": "tetris_worlds",
+            "title": "Tetris Worlds",
+            "path": "https://jsemu2.github.io/gba/Binaries/tetris_worlds.gba"
+        },
+        {
+            "key": "tmnt",
+            "title": "Teenage Mutant Ninja Turtles",
+            "path": "https://jsemu2.github.io/gba/Binaries/tmnt.gba"
+        },
+        {
+            "key": "sims_bustin_out",
+            "title": "The Sims: Bustin' Out",
+            "path": "https://jsemu2.github.io/gba/Binaries/sims_bustin_out.gba"
+        },
+        {
+            "key": "sims2",
+            "title": "The Sims 2",
+            "path": "https://jsemu2.github.io/gba/Binaries/sims2.gba"
+        },
+        {
+            "key": "spyro_adventure",
+            "title": "Spyro Adventure",
+            "path": "https://jsemu2.github.io/gba/Binaries/spyro_adventure.gba"
+        },
+        {
+            "key": "spyro_ice",
+            "title": "Spyro: Season of Ice",
+            "path": "https://jsemu2.github.io/gba/Binaries/spyro_ice.gba"
+        },
+        {
+            "key": "spyro_flame",
+            "title": "Spyro 2: Season of Flame",
+            "path": "https://jsemu2.github.io/gba/Binaries/spyro_flame.gba"
+        },
+        {
+            "key": "turok_evolution",
+            "title": "Turok Evolution",
+            "path": "https://jsemu2.github.io/gba/Binaries/turok_evolution.gba"
+        },
+        {
+            "key": "ty2",
+            "title": "Ty the Tasmanian Tiger 2 - Bush Rescue",
+            "path": "https://jsemu2.github.io/gba/Binaries/ty2.gba"
+        },
+        {
+            "key": "ty3",
+            "title": "Ty the Tasmanian Tiger 3 - Night of the Quinkan",
+            "path": "https://jsemu2.github.io/gba/Binaries/ty3.gba"
+        },
+        {
+            "key": "warioland4",
+            "title": "Wario Land 4",
+            "path": "https://jsemu2.github.io/gba/Binaries/warioland4.gba"
+        },
+        {
+            "key": "wario_ware",
+            "title": "Wario Ware Inc",
+            "path": "https://jsemu2.github.io/gba/Binaries/wario_ware.gba"
+        },
+        {
+            "key": "zelda_past",
+            "title": "The Legend of Zelda: A Link to the Past",
+            "path": "https://jsemu2.github.io/gba/Binaries/zelda_past.gba"
+        },
+        {
+            "key": "zelda_minish",
+            "title": "The Legend of Zelda: The Minish Cap",
+            "path": "https://jsemu2.github.io/gba/Binaries/zelda_minish.gba"
+        }
+    ]
 }

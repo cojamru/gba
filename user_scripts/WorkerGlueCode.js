@@ -298,7 +298,7 @@ class IodineGBAWorkerShim {
 
     consumeGraphicsBuffer() {
         //Load the counter values:
-        const start = this.gfxCounters[0] | 0; //Written by this thread.
+        let start = this.gfxCounters[0] | 0; //Written by this thread.
         const end = Atomics.load(this.gfxCounters, 1) | 0; //Written by the other thread.
         //Don't process if nothing to process:
         if ((end | 0) == (start | 0)) {

@@ -15,9 +15,13 @@
                     <li>
                         File
                         <ul>
-                            <li><span>BIOS: </span> <input type="file" id="bios_load" class="files" /></li>
-                            <li><span>Game: </span> <input type="file" id="rom_load" class="files" /></li>
+                            <li><span>BIOS: </span> <input type="file" id="bios_load" class="files" accept=".bin" /></li>
+                            <li><span>Game: </span> <input type="file" id="rom_load" class="files" accept=".gba" /></li>
                         </ul>
+                    </li>
+                    <li id="games">
+                        Games
+                        <ul id="games_list"></ul>
                     </li>
                     <li id="play" class="show">Play</li>
                     <li id="pause" class="hide">Pause</li>

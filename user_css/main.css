@@ -176,6 +176,21 @@ li.hide {
     opacity: 1;
 }
 
+#games:not([data-loaded]) {
+    display: none;
+}
+
+#games_list {
+    height: 50vh;
+    overflow-y: scroll;
+}
+
+#games_list button {
+    width: 100%;
+    padding: 5px;
+    text-align: center;
+}
+
 /*
 |-----------------------------------------
 | Touch Controls
