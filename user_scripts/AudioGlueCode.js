@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 /*
  Copyright (C) 2012-2015 Grant Galitz
 
@@ -10,14 +10,25 @@
  */
 function GlueCodeMixer(playButton) {
     var parentObj = this;
-    this.audio = new XAudioServer(2, this.sampleRate, 0, this.bufferAmount, null, function () {
-        parentObj.checkHeartbeats();
-    }, function () {
-        parentObj.checkPostHeartbeats();
-    }, 1, function () {
-        //Disable audio in the callback here:
-        parentObj.disableAudio();
-    }, playButton);
+    this.audio = new XAudioServer(
+        2,
+        this.sampleRate,
+        0,
+        this.bufferAmount,
+        null,
+        function () {
+            parentObj.checkHeartbeats();
+        },
+        function () {
+            parentObj.checkPostHeartbeats();
+        },
+        1,
+        function () {
+            //Disable audio in the callback here:
+            parentObj.disableAudio();
+        },
+        playButton
+    );
     this.outputUnits = [];
     this.outputUnitsValid = [];
     this.initializeBuffer();
@@ -26,9 +37,8 @@ GlueCodeMixer.prototype.sampleRate = 44100;
 GlueCodeMixer.prototype.bufferAmount = 44100;
 GlueCodeMixer.prototype.channelCount = 2;
 GlueCodeMixer.prototype.initializeBuffer = function () {
-    this.buffer = new AudioSimpleBuffer(this.channelCount,
-                                         this.bufferAmount);
-}
+    this.buffer = new AudioSimpleBuffer(this.channelCount, this.bufferAmount);
+};
 GlueCodeMixer.prototype.appendInput = function (inUnit) {
     if (this.audio) {
         for (var index = 0; index < this.outputUnits.length; index++) {
@@ -39,11 +49,10 @@ GlueCodeMixer.prototype.appendInput = function (inUnit) {
         this.outputUnits[index] = inUnit;
         this.outputUnitsValid.push(inUnit);
         inUnit.registerStackPosition(index);
-    }
-    else if (typeof inUnit.errorCallback == "function") {
+    } else if (typeof inUnit.errorCallback == 'function') {
         inUnit.errorCallback();
     }
-}
+};
 GlueCodeMixer.prototype.unregister = function (stackPosition) {
     this.outputUnits[stackPosition] = null;
     this.outputUnitsValid = [];
@@ -52,19 +61,19 @@ GlueCodeMixer.prototype.unregister = function (stackPosition) {
             this.outputUnitsValid.push(this.outputUnits);
         }
     }
-}
+};
 GlueCodeMixer.prototype.checkHeartbeats = function () {
     var inputCount = this.outputUnitsValid.length;
     for (var inputIndex = 0, output = 0; inputIndex < inputCount; ++inputIndex) {
         this.outputUnitsValid[inputIndex].heartBeatCallback();
     }
-}
+};
 GlueCodeMixer.prototype.checkPostHeartbeats = function () {
     var inputCount = this.outputUnitsValid.length;
     for (var inputIndex = 0, output = 0; inputIndex < inputCount; ++inputIndex) {
         this.outputUnitsValid[inputIndex].postHeartBeatCallback();
     }
-}
+};
 GlueCodeMixer.prototype.checkAudio = function () {
     if (this.audio) {
         var inputCount = this.outputUnitsValid.length;
@@ -81,7 +90,7 @@ GlueCodeMixer.prototype.checkAudio = function () {
         this.audio.writeAudioNoCallback(this.buffer.buffer, bufferLength);
         this.buffer.reset();
     }
-}
+};
 GlueCodeMixer.prototype.findLowestBufferCount = function () {
     var count = 0;
     for (var inputIndex = 0, inputCount = this.outputUnitsValid.length; inputIndex < inputCount; ++inputIndex) {
@@ -89,17 +98,16 @@ GlueCodeMixer.prototype.findLowestBufferCount = function () {
         if (tempCount > 0) {
             if (count > 0) {
                 count = Math.min(count, tempCount);
-            }
-            else {
+            } else {
                 count = tempCount;
             }
         }
     }
     return Math.min(count, this.channelCount * this.bufferAmount);
-}
+};
 GlueCodeMixer.prototype.disableAudio = function () {
     this.audio = null;
-}
+};
 function GlueCodeMixerInput(mixer) {
     this.mixer = mixer;
     this.volume = 1;
@@ -112,55 +120,50 @@ GlueCodeMixerInput.prototype.initialize = function (channelCount, sampleRate, bu
     this.postHeartBeatCallback = postHeartBeatCallback;
     this.errorCallback = errorCallback;
     var oldBuffer = this.buffer;
-    this.buffer = new AudioBufferWrapper(this.channelCount,
-                                         this.mixer.channelCount,
-                                         this.bufferAmount,
-                                         this.sampleRate,
-                                         this.mixer.sampleRate);
+    this.buffer = new AudioBufferWrapper(this.channelCount, this.mixer.channelCount, this.bufferAmount, this.sampleRate, this.mixer.sampleRate);
     if (oldBuffer) {
         //If re-using same mixer input node, copy old buffer contents into the new buffer:
         this.buffer.copyOld(oldBuffer);
     }
-}
+};
 GlueCodeMixerInput.prototype.register = function () {
     this.mixer.appendInput(this);
-}
+};
 GlueCodeMixerInput.prototype.setVolume = function (volume) {
     this.volume = Math.min(Math.max(volume, 0), 1);
-}
+};
 GlueCodeMixerInput.prototype.prepareShift = function () {
     this.buffer.resampleRefill();
-}
+};
 GlueCodeMixerInput.prototype.shift = function () {
     return this.buffer.shift() * this.volume;
-}
+};
 GlueCodeMixerInput.prototype.push = function (buffer, start, end) {
     this.buffer.push(buffer, start, end);
     this.mixer.checkAudio();
-}
+};
 GlueCodeMixerInput.prototype.pushDeferred = function (buffer, start, end) {
     this.buffer.push(buffer, start, end);
-}
+};
 GlueCodeMixerInput.prototype.flush = function () {
     this.mixer.checkAudio();
-}
+};
 GlueCodeMixerInput.prototype.remainingBuffer = function () {
-    return this.buffer.remainingBuffer() + (Math.floor((this.mixer.audio.remainingBuffer() * this.sampleRate / this.mixer.sampleRate) / this.mixer.channelCount) * this.mixer.channelCount);
-}
+    return (
+        this.buffer.remainingBuffer() +
+        Math.floor((this.mixer.audio.remainingBuffer() * this.sampleRate) / this.mixer.sampleRate / this.mixer.channelCount) * this.mixer.channelCount
+    );
+};
 GlueCodeMixerInput.prototype.registerStackPosition = function (stackPosition) {
     this.stackPosition = stackPosition;
-}
+};
 GlueCodeMixerInput.prototype.unregister = function () {
     this.mixer.unregister(this.stackPosition);
-}
+};
 GlueCodeMixerInput.prototype.setBufferSpace = function (bufferAmount) {
     this.buffer.setBufferSpace(bufferAmount);
-}
-function AudioBufferWrapper(channelCount,
-                            mixerChannelCount,
-                            bufferAmount,
-                            sampleRate,
-                            mixerSampleRate) {
+};
+function AudioBufferWrapper(channelCount, mixerChannelCount, bufferAmount, sampleRate, mixerSampleRate) {
     this.channelCount = channelCount;
     this.mixerChannelCount = mixerChannelCount;
     this.bufferAmount = bufferAmount;
@@ -177,7 +180,7 @@ AudioBufferWrapper.prototype.initialize = function () {
     this.inputOffset = 0;
     this.resampleBufferStart = 0;
     this.resampleBufferEnd = 0;
-}
+};
 AudioBufferWrapper.prototype.copyOld = function (oldBuffer) {
     this.resampleRefill();
     while (oldBuffer.resampleBufferStart != oldBuffer.resampleBufferEnd) {
@@ -195,11 +198,11 @@ AudioBufferWrapper.prototype.copyOld = function (oldBuffer) {
             oldBuffer.resampleBufferStart = 0;
         }
     }
-}
+};
 AudioBufferWrapper.prototype.push = function (buffer, start, end) {
-    var length  = Math.min(buffer.length, end);
+    var length = Math.min(buffer.length, end);
     if (this.channelCount < this.mixerChannelCount) {
-        for (; start < length && this.inputOffset < this.inBufferSize;) {
+        for (; start < length && this.inputOffset < this.inBufferSize; ) {
             for (var index = this.channelCount; index < this.mixerChannelCount; ++index) {
                 this.inBuffer[this.inputOffset++] = buffer[start];
             }
@@ -207,21 +210,19 @@ AudioBufferWrapper.prototype.push = function (buffer, start, end) {
                 this.inBuffer[this.inputOffset++] = buffer[start++];
             }
         }
-    }
-    else if (this.channelCount == this.mixerChannelCount) {
-        for (; start < length && this.inputOffset < this.inBufferSize;) {
+    } else if (this.channelCount == this.mixerChannelCount) {
+        for (; start < length && this.inputOffset < this.inBufferSize; ) {
             this.inBuffer[this.inputOffset++] = buffer[start++];
         }
-    }
-    else {
-        for (; start < length && this.inputOffset < this.inBufferSize;) {
+    } else {
+        for (; start < length && this.inputOffset < this.inBufferSize; ) {
             for (index = 0; index < this.mixerChannelCount && start < length; ++index) {
                 this.inBuffer[this.inputOffset++] = buffer[start++];
             }
             start += this.channelCount - this.mixerChannelCount;
         }
     }
-}
+};
 AudioBufferWrapper.prototype.shift = function () {
     var output = 0;
     if (this.resampleBufferStart != this.resampleBufferEnd) {
@@ -231,13 +232,13 @@ AudioBufferWrapper.prototype.shift = function () {
         }
     }
     return output;
-}
+};
 AudioBufferWrapper.prototype.resampleRefill = function () {
     if (this.inputOffset > 0) {
         //Resample a chunk of audio:
         var resampleLength = this.resampler.resampler(this.inputOffset);
         var resampledResult = this.resampler.outputBuffer;
-        for (var index2 = 0; index2 < resampleLength;) {
+        for (var index2 = 0; index2 < resampleLength; ) {
             this.outBuffer[this.resampleBufferEnd++] = resampledResult[index2++];
             if (this.resampleBufferEnd == this.outBufferSize) {
                 this.resampleBufferEnd = 0;
@@ -251,18 +252,20 @@ AudioBufferWrapper.prototype.resampleRefill = function () {
         }
         this.inputOffset = 0;
     }
-}
+};
 AudioBufferWrapper.prototype.setBufferSpace = function (bufferAmount) {
     while (this.inputOffset < bufferAmount && this.inputOffset < this.inBufferSize) {
         this.inBuffer[this.inputOffset++] = 0;
     }
-}
+};
 AudioBufferWrapper.prototype.remainingBuffer = function () {
-    return (Math.floor((this.resampledSamplesLeft() * this.resampler.ratioWeight) / this.mixerChannelCount) * this.mixerChannelCount) + this.inputOffset;
-}
+    return (
+        Math.floor((this.resampledSamplesLeft() * this.resampler.ratioWeight) / this.mixerChannelCount) * this.mixerChannelCount + this.inputOffset
+    );
+};
 AudioBufferWrapper.prototype.resampledSamplesLeft = function () {
-    return ((this.resampleBufferStart <= this.resampleBufferEnd) ? 0 : this.outBufferSize) + this.resampleBufferEnd - this.resampleBufferStart;
-}
+    return (this.resampleBufferStart <= this.resampleBufferEnd ? 0 : this.outBufferSize) + this.resampleBufferEnd - this.resampleBufferStart;
+};
 function AudioSimpleBuffer(channelCount, bufferAmount) {
     this.channelCount = channelCount;
     this.bufferAmount = bufferAmount;
@@ -274,10 +277,10 @@ AudioSimpleBuffer.prototype.push = function (data) {
     if (this.stackLength < this.outBufferSize) {
         this.buffer[this.stackLength++] = data;
     }
-}
+};
 AudioSimpleBuffer.prototype.count = function () {
     return this.stackLength;
-}
+};
 AudioSimpleBuffer.prototype.reset = function () {
     this.stackLength = 0;
-}
+};

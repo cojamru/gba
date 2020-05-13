@@ -1,0 +1,34 @@
+{
+    "name": "gba-emulator",
+    "version": "1.0.0",
+    "description": "",
+    "repository": "github:cojamru/gba",
+    "author": "Grant Galitz <grantgalitz@gmail.com>",
+    "contributors": [
+        "Dmitry <dmitry@cojam.ru> (https://e965.ru)"
+    ],
+    "license": "MIT",
+    "scripts": {
+        "prettier": "prettier --write **/*.{html,json,js,css}",
+        "lint-staged": "lint-staged"
+    },
+    "lint-staged": {
+        "*.{html,json,js,css}": [
+            "prettier --write"
+        ]
+    },
+    "husky": {
+        "hooks": {
+            "pre-commit": "npm run lint-staged"
+        }
+    },
+    "bugs": {
+        "url": "https://github.com/cojamru/gba/issues"
+    },
+    "homepage": "https://github.com/cojamru/gba#readme",
+    "devDependencies": {
+        "husky": "^4.2.5",
+        "lint-staged": "^10.2.2",
+        "prettier": "^2.0.5"
+    }
+}

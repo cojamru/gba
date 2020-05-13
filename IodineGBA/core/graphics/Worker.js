@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 /*
  Copyright (C) 2012-2016 Grant Galitz
 
@@ -8,18 +8,18 @@
 
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-importScripts("../../includes/TypedArrayShim.js");
-importScripts("Renderer.js");
-importScripts("BGTEXT.js");
-importScripts("BG2FrameBuffer.js");
-importScripts("BGMatrix.js");
-importScripts("AffineBG.js");
-importScripts("ColorEffects.js");
-importScripts("Mosaic.js");
-importScripts("OBJ.js");
-importScripts("OBJWindow.js");
-importScripts("Window.js");
-importScripts("Compositor.js");
+importScripts('../../includes/TypedArrayShim.js');
+importScripts('Renderer.js');
+importScripts('BGTEXT.js');
+importScripts('BG2FrameBuffer.js');
+importScripts('BGMatrix.js');
+importScripts('AffineBG.js');
+importScripts('ColorEffects.js');
+importScripts('Mosaic.js');
+importScripts('OBJ.js');
+importScripts('OBJWindow.js');
+importScripts('Window.js');
+importScripts('Compositor.js');
 var renderer = null;
 var gfxBuffers = null;
 var gfxCounters = null;
@@ -42,12 +42,12 @@ self.onmessage = function (event) {
             assignDynamicBuffers(data.gfxCommandBuffer, data.gfxCommandCounters);
             waitForVSync();
     }
-}
+};
 function copyBuffer(swizzledFrame) {
     //Push a frame of graphics to the blitter handle:
     //Load the counter values:
-    var start = Atomics.load(gfxCounters, 0) | 0;       //Written by the other thread.
-    var end = gfxCounters[1] | 0;                       //Written by this thread.
+    var start = Atomics.load(gfxCounters, 0) | 0; //Written by the other thread.
+    var end = gfxCounters[1] | 0; //Written by this thread.
     //Check if buffer is full:
     if ((end | 0) == (((start | 0) + 2) | 0)) {
         //Skip copying a frame out:
@@ -88,9 +88,9 @@ function assignDynamicBuffers(cmdb, cmdc) {
 }
 function processCommands() {
     //Load the counter values:
-    var start = gfxCommandCounters[0] | 0;              //Written by this thread.
-    var end = Atomics.load(gfxCommandCounters, 1) | 0;  //Written by the other thread.
-    gfxLinesCPU = Atomics.load(gfxLineCounter, 0) | 0;  //Keep atomic; IonMonkey thinks this is dead code if it's removed.
+    var start = gfxCommandCounters[0] | 0; //Written by this thread.
+    var end = Atomics.load(gfxCommandCounters, 1) | 0; //Written by the other thread.
+    gfxLinesCPU = Atomics.load(gfxLineCounter, 0) | 0; //Keep atomic; IonMonkey thinks this is dead code if it's removed.
     //Don't process if nothing to process:
     if ((end | 0) == (start | 0)) {
         //Buffer is empty:
@@ -123,27 +123,27 @@ function dispatchCommand(command, data) {
             break;
         //VRAM 16-BIT:
         case 1:
-            renderer.writeVRAM16(command & 0xFFFF, data | 0);
+            renderer.writeVRAM16(command & 0xffff, data | 0);
             break;
         //VRAM 32-BIT:
         case 2:
-            renderer.writeVRAM32(command & 0x7FFF, data | 0);
+            renderer.writeVRAM32(command & 0x7fff, data | 0);
             break;
         //Palette 16-BIT:
         case 3:
-            renderer.writePalette16(command & 0x1FF, data | 0);
+            renderer.writePalette16(command & 0x1ff, data | 0);
             break;
         //Palette 32-BIT:
         case 4:
-            renderer.writePalette32(command & 0xFF, data | 0);
+            renderer.writePalette32(command & 0xff, data | 0);
             break;
         //OAM 16-BIT:
         case 5:
-            renderer.writeOAM16(command & 0x1FF, data | 0);
+            renderer.writeOAM16(command & 0x1ff, data | 0);
             break;
         //OAM 32-BIT:
         default:
-            renderer.writeOAM32(command & 0xFF, data | 0);
+            renderer.writeOAM32(command & 0xff, data | 0);
     }
 }
 function dispatchIOCommand(command, data) {
@@ -567,8 +567,7 @@ function decodeInternalCommand(data) {
             if ((((gfxLinesCPU | 0) - (gfxLinesGPU | 0)) | 0) < 480) {
                 //Render a scanline:
                 renderer.renderScanLine();
-            }
-            else {
+            } else {
                 //Update some internal counters to maintain state:
                 renderer.updateReferenceCounters();
             }

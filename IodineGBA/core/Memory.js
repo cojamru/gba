@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 /*
  Copyright (C) 2012-2016 Grant Galitz
 
@@ -20,12 +20,11 @@ GameBoyAdvanceMemory.prototype.initialize = function () {
     this.BIOS32 = getInt32View(this.BIOS);
     if ((this.loadBIOS() | 0) == 1) {
         this.initializeRAM();
-    }
-    else {
+    } else {
         allowInit = 0;
     }
     return allowInit | 0;
-}
+};
 GameBoyAdvanceMemory.prototype.initializeRAM = function () {
     //WRAM Map Control Stuff:
     this.WRAMControlFlags = 0x20;
@@ -36,7 +35,7 @@ GameBoyAdvanceMemory.prototype.initializeRAM = function () {
     this.internalRAM = getUint8Array(0x8000);
     this.internalRAM16 = getUint16View(this.internalRAM);
     this.internalRAM32 = getInt32View(this.internalRAM);
-    this.lastBIOSREAD = 0;        //BIOS read bus last.
+    this.lastBIOSREAD = 0; //BIOS read bus last.
     //Initialize the various handler objects:
     this.dma = this.IOCore.dma;
     this.dmaChannel0 = this.IOCore.dmaChannel0;
@@ -54,88 +53,86 @@ GameBoyAdvanceMemory.prototype.initializeRAM = function () {
     this.wait = this.IOCore.wait;
     this.cpu = this.IOCore.cpu;
     this.saves = this.IOCore.saves;
-}
+};
 GameBoyAdvanceMemory.prototype.writeExternalWRAM8 = function (address, data) {
     address = address | 0;
     data = data | 0;
     //External WRAM:
     this.wait.WRAMAccess();
-    this.externalRAM[address & 0x3FFFF] = data & 0xFF;
-}
+    this.externalRAM[address & 0x3ffff] = data & 0xff;
+};
 if (__LITTLE_ENDIAN__) {
     GameBoyAdvanceMemory.prototype.writeExternalWRAM16 = function (address, data) {
         address = address | 0;
         data = data | 0;
         //External WRAM:
         this.wait.WRAMAccess();
-        this.externalRAM16[(address >> 1) & 0x1FFFF] = data & 0xFFFF;
-    }
+        this.externalRAM16[(address >> 1) & 0x1ffff] = data & 0xffff;
+    };
     GameBoyAdvanceMemory.prototype.writeExternalWRAM32 = function (address, data) {
         address = address | 0;
         data = data | 0;
         //External WRAM:
         this.wait.WRAMAccess32();
-        this.externalRAM32[(address >> 2) & 0xFFFF] = data | 0;
-    }
-}
-else {
+        this.externalRAM32[(address >> 2) & 0xffff] = data | 0;
+    };
+} else {
     GameBoyAdvanceMemory.prototype.writeExternalWRAM16 = function (address, data) {
         //External WRAM:
         this.wait.WRAMAccess();
-        address &= 0x3FFFE;
-        this.externalRAM[address++] = data & 0xFF;
-        this.externalRAM[address] = (data >> 8) & 0xFF;
-    }
+        address &= 0x3fffe;
+        this.externalRAM[address++] = data & 0xff;
+        this.externalRAM[address] = (data >> 8) & 0xff;
+    };
     GameBoyAdvanceMemory.prototype.writeExternalWRAM32 = function (address, data) {
         //External WRAM:
         this.wait.WRAMAccess32();
-        address &= 0x3FFFC;
-        this.externalRAM[address++] = data & 0xFF;
-        this.externalRAM[address++] = (data >> 8) & 0xFF;
-        this.externalRAM[address++] = (data >> 16) & 0xFF;
+        address &= 0x3fffc;
+        this.externalRAM[address++] = data & 0xff;
+        this.externalRAM[address++] = (data >> 8) & 0xff;
+        this.externalRAM[address++] = (data >> 16) & 0xff;
         this.externalRAM[address] = data >>> 24;
-    }
+    };
 }
 GameBoyAdvanceMemory.prototype.writeInternalWRAM8 = function (address, data) {
     address = address | 0;
     data = data | 0;
     //Internal WRAM:
     this.wait.singleClock();
-    this.internalRAM[address & 0x7FFF] = data & 0xFF;
-}
+    this.internalRAM[address & 0x7fff] = data & 0xff;
+};
 if (__LITTLE_ENDIAN__) {
     GameBoyAdvanceMemory.prototype.writeInternalWRAM16 = function (address, data) {
         address = address | 0;
         data = data | 0;
         //Internal WRAM:
         this.wait.singleClock();
-        this.internalRAM16[(address >> 1) & 0x3FFF] = data & 0xFFFF;
-    }
+        this.internalRAM16[(address >> 1) & 0x3fff] = data & 0xffff;
+    };
     GameBoyAdvanceMemory.prototype.writeInternalWRAM32 = function (address, data) {
         address = address | 0;
         data = data | 0;
         //Internal WRAM:
         this.wait.singleClock();
-        this.internalRAM32[(address >> 2) & 0x1FFF] = data | 0;
-    }
-}
-else {
+        this.internalRAM32[(address >> 2) & 0x1fff] = data | 0;
+    };
+} else {
     GameBoyAdvanceMemory.prototype.writeInternalWRAM16 = function (address, data) {
         //Internal WRAM:
         this.wait.singleClock();
-        address &= 0x7FFE;
-        this.internalRAM[address++] = data & 0xFF;
-        this.internalRAM[address] = (data >> 8) & 0xFF;
-    }
+        address &= 0x7ffe;
+        this.internalRAM[address++] = data & 0xff;
+        this.internalRAM[address] = (data >> 8) & 0xff;
+    };
     GameBoyAdvanceMemory.prototype.writeInternalWRAM32 = function (address, data) {
         //Internal WRAM:
         this.wait.singleClock();
-        address &= 0x7FFC;
-        this.internalRAM[address++] = data & 0xFF;
-        this.internalRAM[address++] = (data >> 8) & 0xFF;
-        this.internalRAM[address++] = (data >> 16) & 0xFF;
+        address &= 0x7ffc;
+        this.internalRAM[address++] = data & 0xff;
+        this.internalRAM[address++] = (data >> 8) & 0xff;
+        this.internalRAM[address++] = (data >> 16) & 0xff;
         this.internalRAM[address] = data >>> 24;
-    }
+    };
 }
 GameBoyAdvanceMemory.prototype.writeIODispatch8 = function (address, data) {
     address = address | 0;
@@ -174,27 +171,27 @@ GameBoyAdvanceMemory.prototype.writeIODispatch8 = function (address, data) {
             this.gfxRenderer.writeBG0CNT8_1(data | 0);
             break;
         //400000Ah - BG1CNT - BG1 Control (R/W) (BG Modes 0,1 only)
-        case 0x400000A:
+        case 0x400000a:
             this.gfxRenderer.writeBG1CNT8_0(data | 0);
             break;
         //400000Bh - BG1CNT - BG1 Control (R/W) (BG Modes 0,1 only)
-        case 0x400000B:
+        case 0x400000b:
             this.gfxRenderer.writeBG1CNT8_1(data | 0);
             break;
         //400000Ch - BG2CNT - BG2 Control (R/W) (BG Modes 0,1,2 only)
-        case 0x400000C:
+        case 0x400000c:
             this.gfxRenderer.writeBG2CNT8_0(data | 0);
             break;
         //400000Dh - BG2CNT - BG2 Control (R/W) (BG Modes 0,1,2 only)
-        case 0x400000D:
+        case 0x400000d:
             this.gfxRenderer.writeBG2CNT8_1(data | 0);
             break;
         //400000Eh - BG3CNT - BG3 Control (R/W) (BG Modes 0,2 only)
-        case 0x400000E:
+        case 0x400000e:
             this.gfxRenderer.writeBG3CNT8_0(data | 0);
             break;
         //400000Fh - BG3CNT - BG3 Control (R/W) (BG Modes 0,2 only)
-        case 0x400000F:
+        case 0x400000f:
             this.gfxRenderer.writeBG3CNT8_1(data | 0);
             break;
         //4000010h - BG0HOFS - BG0 X-Offset (W)
@@ -238,27 +235,27 @@ GameBoyAdvanceMemory.prototype.writeIODispatch8 = function (address, data) {
             this.gfxRenderer.writeBG2HOFS8_1(data | 0);
             break;
         //400001Ah - BG2VOFS - BG2 Y-Offset (W)
-        case 0x400001A:
+        case 0x400001a:
             this.gfxRenderer.writeBG2VOFS8_0(data | 0);
             break;
         //400001Bh - BG2VOFS - BG2 Y-Offset (W)
-        case 0x400001B:
+        case 0x400001b:
             this.gfxRenderer.writeBG2VOFS8_1(data | 0);
             break;
         //400001Ch - BG3HOFS - BG3 X-Offset (W)
-        case 0x400001C:
+        case 0x400001c:
             this.gfxRenderer.writeBG3HOFS8_0(data | 0);
             break;
         //400001Dh - BG3HOFS - BG3 X-Offset (W)
-        case 0x400001D:
+        case 0x400001d:
             this.gfxRenderer.writeBG3HOFS8_1(data | 0);
             break;
         //400001Eh - BG3VOFS - BG3 Y-Offset (W)
-        case 0x400001E:
+        case 0x400001e:
             this.gfxRenderer.writeBG3VOFS8_0(data | 0);
             break;
         //400001Fh - BG3VOFS - BG3 Y-Offset (W)
-        case 0x400001F:
+        case 0x400001f:
             this.gfxRenderer.writeBG3VOFS8_1(data | 0);
             break;
         //4000020h - BG2PA - BG2 Rotation/Scaling Parameter A (alias dx) (W)
@@ -302,27 +299,27 @@ GameBoyAdvanceMemory.prototype.writeIODispatch8 = function (address, data) {
             this.gfxRenderer.writeBG2X8_1(data | 0);
             break;
         //400002Ah - BG2X_H - BG2 Reference Point X-Coordinate, upper 12 bit (W)
-        case 0x400002A:
+        case 0x400002a:
             this.gfxRenderer.writeBG2X8_2(data | 0);
             break;
         //400002Bh - BG2X_H - BG2 Reference Point X-Coordinate, upper 12 bit (W)
-        case 0x400002B:
+        case 0x400002b:
             this.gfxRenderer.writeBG2X8_3(data | 0);
             break;
         //400002Ch - BG2Y_L - BG2 Reference Point Y-Coordinate, lower 16 bit (W)
-        case 0x400002C:
+        case 0x400002c:
             this.gfxRenderer.writeBG2Y8_0(data | 0);
             break;
         //400002Dh - BG2Y_L - BG2 Reference Point Y-Coordinate, lower 16 bit (W)
-        case 0x400002D:
+        case 0x400002d:
             this.gfxRenderer.writeBG2Y8_1(data | 0);
             break;
         //400002Eh - BG2Y_H - BG2 Reference Point Y-Coordinate, upper 12 bit (W)
-        case 0x400002E:
+        case 0x400002e:
             this.gfxRenderer.writeBG2Y8_2(data | 0);
             break;
         //400002Fh - BG2Y_H - BG2 Reference Point Y-Coordinate, upper 12 bit (W)
-        case 0x400002F:
+        case 0x400002f:
             this.gfxRenderer.writeBG2Y8_3(data | 0);
             break;
         //4000030h - BG3PA - BG3 Rotation/Scaling Parameter A (alias dx) (W)
@@ -366,27 +363,27 @@ GameBoyAdvanceMemory.prototype.writeIODispatch8 = function (address, data) {
             this.gfxRenderer.writeBG3X8_1(data | 0);
             break;
         //400003Ah - BG3X_H - BG3 Reference Point X-Coordinate, upper 12 bit (W)
-        case 0x400003A:
+        case 0x400003a:
             this.gfxRenderer.writeBG3X8_2(data | 0);
             break;
         //400003Bh - BG3X_H - BG3 Reference Point X-Coordinate, upper 12 bit (W)
-        case 0x400003B:
+        case 0x400003b:
             this.gfxRenderer.writeBG3X8_3(data | 0);
             break;
         //400003Ch - BG3Y_L - BG3 Reference Point Y-Coordinate, lower 16 bit (W)
-        case 0x400003C:
+        case 0x400003c:
             this.gfxRenderer.writeBG3Y8_0(data | 0);
             break;
         //400003Dh - BGY_L - BG3 Reference Point Y-Coordinate, lower 16 bit (W)
-        case 0x400003D:
+        case 0x400003d:
             this.gfxRenderer.writeBG3Y8_1(data | 0);
             break;
         //400003Eh - BG3Y_H - BG3 Reference Point Y-Coordinate, upper 12 bit (W)
-        case 0x400003E:
+        case 0x400003e:
             this.gfxRenderer.writeBG3Y8_2(data | 0);
             break;
         //400003Fh - BG3Y_H - BG3 Reference Point Y-Coordinate, upper 12 bit (W)
-        case 0x400003F:
+        case 0x400003f:
             this.gfxRenderer.writeBG3Y8_3(data | 0);
             break;
         //4000040h - WIN0H - Window 0 Horizontal Dimensions (W)
@@ -430,19 +427,19 @@ GameBoyAdvanceMemory.prototype.writeIODispatch8 = function (address, data) {
             this.gfxRenderer.writeWIN1IN8(data | 0);
             break;
         //400004Ah- WINOUT - Control of Outside of Windows (R/W)
-        case 0x400004A:
+        case 0x400004a:
             this.gfxRenderer.writeWINOUT8(data | 0);
             break;
         //400004AB- WINOUT - Inside of OBJ Window (R/W)
-        case 0x400004B:
+        case 0x400004b:
             this.gfxRenderer.writeWINOBJIN8(data | 0);
             break;
         //400004Ch - MOSAIC - Mosaic Size (W)
-        case 0x400004C:
+        case 0x400004c:
             this.gfxRenderer.writeMOSAIC8_0(data | 0);
             break;
         //400004Dh - MOSAIC - Mosaic Size (W)
-        case 0x400004D:
+        case 0x400004d:
             this.gfxRenderer.writeMOSAIC8_1(data | 0);
             break;
         //400004Eh - NOT USED - ZERO
@@ -509,12 +506,12 @@ GameBoyAdvanceMemory.prototype.writeIODispatch8 = function (address, data) {
         //400006Ah - NOT USED - ZERO
         //400006Bh - NOT USED - ZERO
         //400006Ch - SOUND2CNT_H (NR23, NR24) - Channel 2 Frequency/Control (R/W)
-        case 0x400006C:
+        case 0x400006c:
             //NR23:
             this.sound.writeSOUND2CNTH8_0(data | 0);
             break;
         //400006Dh - SOUND2CNT_H (NR23, NR24) - Channel 2 Frequency/Control (R/W)
-        case 0x400006D:
+        case 0x400006d:
             //NR24:
             this.sound.writeSOUND2CNTH8_1(data | 0);
             break;
@@ -561,12 +558,12 @@ GameBoyAdvanceMemory.prototype.writeIODispatch8 = function (address, data) {
         //400007Ah - NOT USED - ZERO
         //400007Bh - NOT USED - ZERO
         //400007Ch - SOUND4CNT_H (NR43, NR44) - Channel 4 Frequency/Control (R/W)
-        case 0x400007C:
+        case 0x400007c:
             //NR43:
             this.sound.writeSOUND4CNTH8_0(data | 0);
             break;
         //400007Dh - SOUND4CNT_H (NR43, NR44) - Channel 4 Frequency/Control (R/W)
-        case 0x400007D:
+        case 0x400007d:
             //NR44:
             this.sound.writeSOUND4CNTH8_1(data | 0);
             break;
@@ -627,230 +624,230 @@ GameBoyAdvanceMemory.prototype.writeIODispatch8 = function (address, data) {
         //4000099h - WAVE_RAM2_L - Channel 3 Wave Pattern RAM (W/R)
         case 0x4000099:
         //400009Ah - WAVE_RAM2_H - Channel 3 Wave Pattern RAM (W/R)
-        case 0x400009A:
+        case 0x400009a:
         //400009Bh - WAVE_RAM2_H - Channel 3 Wave Pattern RAM (W/R)
-        case 0x400009B:
+        case 0x400009b:
         //400009Ch - WAVE_RAM3_L - Channel 3 Wave Pattern RAM (W/R)
-        case 0x400009C:
+        case 0x400009c:
         //400009Dh - WAVE_RAM3_L - Channel 3 Wave Pattern RAM (W/R)
-        case 0x400009D:
+        case 0x400009d:
         //400009Eh - WAVE_RAM3_H - Channel 3 Wave Pattern RAM (W/R)
-        case 0x400009E:
+        case 0x400009e:
         //400009Fh - WAVE_RAM3_H - Channel 3 Wave Pattern RAM (W/R)
-        case 0x400009F:
-            this.sound.writeWAVE8(address & 0xF, data | 0);
+        case 0x400009f:
+            this.sound.writeWAVE8(address & 0xf, data | 0);
             break;
         //40000A0h - FIFO_A_L - FIFO Channel A First Word (W)
-        case 0x40000A0:
+        case 0x40000a0:
         //40000A1h - FIFO_A_L - FIFO Channel A First Word (W)
-        case 0x40000A1:
+        case 0x40000a1:
         //40000A2h - FIFO_A_H - FIFO Channel A Second Word (W)
-        case 0x40000A2:
+        case 0x40000a2:
         //40000A3h - FIFO_A_H - FIFO Channel A Second Word (W)
-        case 0x40000A3:
+        case 0x40000a3:
             this.sound.writeFIFOA8(data | 0);
             break;
         //40000A4h - FIFO_B_L - FIFO Channel B First Word (W)
-        case 0x40000A4:
+        case 0x40000a4:
         //40000A5h - FIFO_B_L - FIFO Channel B First Word (W)
-        case 0x40000A5:
+        case 0x40000a5:
         //40000A6h - FIFO_B_H - FIFO Channel B Second Word (W)
-        case 0x40000A6:
+        case 0x40000a6:
         //40000A7h - FIFO_B_H - FIFO Channel B Second Word (W)
-        case 0x40000A7:
+        case 0x40000a7:
             this.sound.writeFIFOB8(data | 0);
             break;
         //40000A8h through 40000AFh - NOT USED - GLITCHED
         //40000B0h - DMA0SAD - DMA 0 Source Address (W) (internal memory)
-        case 0x40000B0:
+        case 0x40000b0:
             this.dmaChannel0.writeDMASource8_0(data | 0);
             break;
         //40000B1h - DMA0SAD - DMA 0 Source Address (W) (internal memory)
-        case 0x40000B1:
+        case 0x40000b1:
             this.dmaChannel0.writeDMASource8_1(data | 0);
             break;
         //40000B2h - DMA0SAH - DMA 0 Source Address (W) (internal memory)
-        case 0x40000B2:
+        case 0x40000b2:
             this.dmaChannel0.writeDMASource8_2(data | 0);
             break;
         //40000B3h - DMA0SAH - DMA 0 Source Address (W) (internal memory)
-        case 0x40000B3:
+        case 0x40000b3:
             this.dmaChannel0.writeDMASource8_3(data | 0);
             break;
         //40000B4h - DMA0DAD - DMA 0 Destination Address (W) (internal memory)
-        case 0x40000B4:
+        case 0x40000b4:
             this.dmaChannel0.writeDMADestination8_0(data | 0);
             break;
         //40000B5h - DMA0DAD - DMA 0 Destination Address (W) (internal memory)
-        case 0x40000B5:
+        case 0x40000b5:
             this.dmaChannel0.writeDMADestination8_1(data | 0);
             break;
         //40000B6h - DMA0DAH - DMA 0 Destination Address (W) (internal memory)
-        case 0x40000B6:
+        case 0x40000b6:
             this.dmaChannel0.writeDMADestination8_2(data | 0);
             break;
         //40000B7h - DMA0DAH - DMA 0 Destination Address (W) (internal memory)
-        case 0x40000B7:
+        case 0x40000b7:
             this.dmaChannel0.writeDMADestination8_3(data | 0);
             break;
         //40000B8h - DMA0CNT_L - DMA 0 Word Count (W) (14 bit, 1..4000h)
-        case 0x40000B8:
+        case 0x40000b8:
             this.dmaChannel0.writeDMAWordCount8_0(data | 0);
             break;
         //40000B9h - DMA0CNT_L - DMA 0 Word Count (W) (14 bit, 1..4000h)
-        case 0x40000B9:
+        case 0x40000b9:
             this.dmaChannel0.writeDMAWordCount8_1(data | 0);
             break;
         //40000BAh - DMA0CNT_H - DMA 0 Control (R/W)
-        case 0x40000BA:
+        case 0x40000ba:
             this.dmaChannel0.writeDMAControl8_0(data | 0);
             break;
         //40000BBh - DMA0CNT_H - DMA 0 Control (R/W)
-        case 0x40000BB:
+        case 0x40000bb:
             this.dmaChannel0.writeDMAControl8_1(data | 0);
             break;
         //40000BCh - DMA1SAD - DMA 1 Source Address (W) (internal memory)
-        case 0x40000BC:
+        case 0x40000bc:
             this.dmaChannel1.writeDMASource8_0(data | 0);
             break;
         //40000BDh - DMA1SAD - DMA 1 Source Address (W) (internal memory)
-        case 0x40000BD:
+        case 0x40000bd:
             this.dmaChannel1.writeDMASource8_1(data | 0);
             break;
         //40000BEh - DMA1SAH - DMA 1 Source Address (W) (internal memory)
-        case 0x40000BE:
+        case 0x40000be:
             this.dmaChannel1.writeDMASource8_2(data | 0);
             break;
         //40000BFh - DMA1SAH - DMA 1 Source Address (W) (internal memory)
-        case 0x40000BF:
+        case 0x40000bf:
             this.dmaChannel1.writeDMASource8_3(data | 0);
             break;
         //40000C0h - DMA1DAD - DMA 1 Destination Address (W) (internal memory)
-        case 0x40000C0:
+        case 0x40000c0:
             this.dmaChannel1.writeDMADestination8_0(data | 0);
             break;
         //40000C1h - DMA1DAD - DMA 1 Destination Address (W) (internal memory)
-        case 0x40000C1:
+        case 0x40000c1:
             this.dmaChannel1.writeDMADestination8_1(data | 0);
             break;
         //40000C2h - DMA1DAH - DMA 1 Destination Address (W) (internal memory)
-        case 0x40000C2:
+        case 0x40000c2:
             this.dmaChannel1.writeDMADestination8_2(data | 0);
             break;
         //40000C3h - DMA1DAH - DMA 1 Destination Address (W) (internal memory)
-        case 0x40000C3:
+        case 0x40000c3:
             this.dmaChannel1.writeDMADestination8_3(data | 0);
             break;
         //40000C4h - DMA1CNT_L - DMA 1 Word Count (W) (14 bit, 1..4000h)
-        case 0x40000C4:
+        case 0x40000c4:
             this.dmaChannel1.writeDMAWordCount8_0(data | 0);
             break;
         //40000C5h - DMA1CNT_L - DMA 1 Word Count (W) (14 bit, 1..4000h)
-        case 0x40000C5:
+        case 0x40000c5:
             this.dmaChannel1.writeDMAWordCount8_1(data | 0);
             break;
         //40000C6h - DMA1CNT_H - DMA 1 Control (R/W)
-        case 0x40000C6:
+        case 0x40000c6:
             this.dmaChannel1.writeDMAControl8_0(data | 0);
             break;
         //40000C7h - DMA1CNT_H - DMA 1 Control (R/W)
-        case 0x40000C7:
+        case 0x40000c7:
             this.dmaChannel1.writeDMAControl8_1(data | 0);
             break;
         //40000C8h - DMA2SAD - DMA 2 Source Address (W) (internal memory)
-        case 0x40000C8:
+        case 0x40000c8:
             this.dmaChannel2.writeDMASource8_0(data | 0);
             break;
         //40000C9h - DMA2SAD - DMA 2 Source Address (W) (internal memory)
-        case 0x40000C9:
+        case 0x40000c9:
             this.dmaChannel2.writeDMASource8_1(data | 0);
             break;
         //40000CAh - DMA2SAH - DMA 2 Source Address (W) (internal memory)
-        case 0x40000CA:
+        case 0x40000ca:
             this.dmaChannel2.writeDMASource8_2(data | 0);
             break;
         //40000CBh - DMA2SAH - DMA 2 Source Address (W) (internal memory)
-        case 0x40000CB:
+        case 0x40000cb:
             this.dmaChannel2.writeDMASource8_3(data | 0);
             break;
         //40000CCh - DMA2DAD - DMA 2 Destination Address (W) (internal memory)
-        case 0x40000CC:
+        case 0x40000cc:
             this.dmaChannel2.writeDMADestination8_0(data | 0);
             break;
         //40000CDh - DMA2DAD - DMA 2 Destination Address (W) (internal memory)
-        case 0x40000CD:
+        case 0x40000cd:
             this.dmaChannel2.writeDMADestination8_1(data | 0);
             break;
         //40000CEh - DMA2DAH - DMA 2 Destination Address (W) (internal memory)
-        case 0x40000CE:
+        case 0x40000ce:
             this.dmaChannel2.writeDMADestination8_2(data | 0);
             break;
         //40000CFh - DMA2DAH - DMA 2 Destination Address (W) (internal memory)
-        case 0x40000CF:
+        case 0x40000cf:
             this.dmaChannel2.writeDMADestination8_3(data | 0);
             break;
         //40000D0h - DMA2CNT_L - DMA 2 Word Count (W) (14 bit, 1..4000h)
-        case 0x40000D0:
+        case 0x40000d0:
             this.dmaChannel2.writeDMAWordCount8_0(data | 0);
             break;
         //40000D1h - DMA2CNT_L - DMA 2 Word Count (W) (14 bit, 1..4000h)
-        case 0x40000D1:
+        case 0x40000d1:
             this.dmaChannel2.writeDMAWordCount8_1(data | 0);
             break;
         //40000D2h - DMA2CNT_H - DMA 2 Control (R/W)
-        case 0x40000D2:
+        case 0x40000d2:
             this.dmaChannel2.writeDMAControl8_0(data | 0);
             break;
         //40000D3h - DMA2CNT_H - DMA 2 Control (R/W)
-        case 0x40000D3:
+        case 0x40000d3:
             this.dmaChannel2.writeDMAControl8_1(data | 0);
             break;
         //40000D4h - DMA3SAD - DMA 3 Source Address (W) (internal memory)
-        case 0x40000D4:
+        case 0x40000d4:
             this.dmaChannel3.writeDMASource8_0(data | 0);
             break;
         //40000D5h - DMA3SAD - DMA 3 Source Address (W) (internal memory)
-        case 0x40000D5:
+        case 0x40000d5:
             this.dmaChannel3.writeDMASource8_1(data | 0);
             break;
         //40000D6h - DMA3SAH - DMA 3 Source Address (W) (internal memory)
-        case 0x40000D6:
+        case 0x40000d6:
             this.dmaChannel3.writeDMASource8_2(data | 0);
             break;
         //40000D7h - DMA3SAH - DMA 3 Source Address (W) (internal memory)
-        case 0x40000D7:
+        case 0x40000d7:
             this.dmaChannel3.writeDMASource8_3(data | 0);
             break;
         //40000D8h - DMA3DAD - DMA 3 Destination Address (W) (internal memory)
-        case 0x40000D8:
+        case 0x40000d8:
             this.dmaChannel3.writeDMADestination8_0(data | 0);
             break;
         //40000D9h - DMA3DAD - DMA 3 Destination Address (W) (internal memory)
-        case 0x40000D9:
+        case 0x40000d9:
             this.dmaChannel3.writeDMADestination8_1(data | 0);
             break;
         //40000DAh - DMA3DAH - DMA 3 Destination Address (W) (internal memory)
-        case 0x40000DA:
+        case 0x40000da:
             this.dmaChannel3.writeDMADestination8_2(data | 0);
             break;
         //40000DBh - DMA3DAH - DMA 3 Destination Address (W) (internal memory)
-        case 0x40000DB:
+        case 0x40000db:
             this.dmaChannel3.writeDMADestination8_3(data | 0);
             break;
         //40000DCh - DMA3CNT_L - DMA 3 Word Count (W) (16 bit, 1..10000h)
-        case 0x40000DC:
+        case 0x40000dc:
             this.dmaChannel3.writeDMAWordCount8_0(data | 0);
             break;
         //40000DDh - DMA3CNT_L - DMA 3 Word Count (W) (16 bit, 1..10000h)
-        case 0x40000DD:
+        case 0x40000dd:
             this.dmaChannel3.writeDMAWordCount8_1(data | 0);
             break;
         //40000DEh - DMA3CNT_H - DMA 3 Control (R/W)
-        case 0x40000DE:
+        case 0x40000de:
             this.dmaChannel3.writeDMAControl8_0(data | 0);
             break;
         //40000DFh - DMA3CNT_H - DMA 3 Control (R/W)
-        case 0x40000DF:
+        case 0x40000df:
             this.dmaChannel3.writeDMAControl8_1(data | 0);
             break;
         //40000E0h through 40000FFh - NOT USED - GLITCHED
@@ -889,20 +886,20 @@ GameBoyAdvanceMemory.prototype.writeIODispatch8 = function (address, data) {
             this.timer.writeTM2CNT8_1(data | 0);
             break;
         //400010Ah - TM2CNT_H - Timer 2 Control (R/W)
-        case 0x400010A:
+        case 0x400010a:
             this.timer.writeTM2CNT8_2(data | 0);
             break;
         //400010Bh - TM2CNT_H - Timer 2 Control (R/W)
         //400010Ch - TM3CNT_L - Timer 3 Counter/Reload (R/W)
-        case 0x400010C:
+        case 0x400010c:
             this.timer.writeTM3CNT8_0(data | 0);
             break;
         //400010Dh - TM3CNT_L - Timer 3 Counter/Reload (R/W)
-        case 0x400010D:
+        case 0x400010d:
             this.timer.writeTM3CNT8_1(data | 0);
             break;
         //400010Eh - TM3CNT_H - Timer 3 Control (R/W)
-        case 0x400010E:
+        case 0x400010e:
             this.timer.writeTM3CNT8_2(data | 0);
             break;
         //400010Fh - TM3CNT_H - Timer 3 Control (R/W)
@@ -910,73 +907,73 @@ GameBoyAdvanceMemory.prototype.writeIODispatch8 = function (address, data) {
         //4000120h - Serial Data A (R/W)
         case 0x4000120:
             this.IOCore.updateSerialClocking();
-            this.serial.writeSIODATA_A0(data & 0xFF);
+            this.serial.writeSIODATA_A0(data & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000121h - Serial Data A (R/W)
         case 0x4000121:
             this.IOCore.updateSerialClocking();
-            this.serial.writeSIODATA_A1(data & 0xFF);
+            this.serial.writeSIODATA_A1(data & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000122h - Serial Data B (R/W)
         case 0x4000122:
             this.IOCore.updateSerialClocking();
-            this.serial.writeSIODATA_B0(data & 0xFF);
+            this.serial.writeSIODATA_B0(data & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000123h - Serial Data B (R/W)
         case 0x4000123:
             this.IOCore.updateSerialClocking();
-            this.serial.writeSIODATA_B1(data & 0xFF);
+            this.serial.writeSIODATA_B1(data & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000124h - Serial Data C (R/W)
         case 0x4000124:
             this.IOCore.updateSerialClocking();
-            this.serial.writeSIODATA_C0(data & 0xFF);
+            this.serial.writeSIODATA_C0(data & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000125h - Serial Data C (R/W)
         case 0x4000125:
             this.IOCore.updateSerialClocking();
-            this.serial.writeSIODATA_C1(data & 0xFF);
+            this.serial.writeSIODATA_C1(data & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000126h - Serial Data D (R/W)
         case 0x4000126:
             this.IOCore.updateSerialClocking();
-            this.serial.writeSIODATA_D0(data & 0xFF);
+            this.serial.writeSIODATA_D0(data & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000127h - Serial Data D (R/W)
         case 0x4000127:
             this.IOCore.updateSerialClocking();
-            this.serial.writeSIODATA_D1(data & 0xFF);
+            this.serial.writeSIODATA_D1(data & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000128h - SIOCNT - SIO Sub Mode Control (R/W)
         case 0x4000128:
             this.IOCore.updateSerialClocking();
-            this.serial.writeSIOCNT0(data & 0xFF);
+            this.serial.writeSIOCNT0(data & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000129h - SIOCNT - SIO Sub Mode Control (R/W)
         case 0x4000129:
             this.IOCore.updateSerialClocking();
-            this.serial.writeSIOCNT1(data & 0xFF);
+            this.serial.writeSIOCNT1(data & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //400012Ah - SIOMLT_SEND - Data Send Register (R/W)
-        case 0x400012A:
+        case 0x400012a:
             this.IOCore.updateSerialClocking();
-            this.serial.writeSIODATA8_0(data & 0xFF);
+            this.serial.writeSIODATA8_0(data & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //400012Bh - SIOMLT_SEND - Data Send Register (R/W)
-        case 0x400012B:
+        case 0x400012b:
             this.IOCore.updateSerialClocking();
-            this.serial.writeSIODATA8_1(data & 0xFF);
+            this.serial.writeSIODATA8_1(data & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //400012Ch through 400012Fh - NOT USED - GLITCHED
@@ -993,20 +990,20 @@ GameBoyAdvanceMemory.prototype.writeIODispatch8 = function (address, data) {
         //4000134h - RCNT (R/W) - Mode Selection
         case 0x4000134:
             this.IOCore.updateSerialClocking();
-            this.serial.writeRCNT0(data & 0xFF);
+            this.serial.writeRCNT0(data & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000135h - RCNT (R/W) - Mode Selection
         case 0x4000135:
             this.IOCore.updateSerialClocking();
-            this.serial.writeRCNT1(data & 0xFF);
+            this.serial.writeRCNT1(data & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000136h through 400013Fh - NOT USED - GLITCHED
         //4000140h - JOYCNT - JOY BUS Control Register (R/W)
         case 0x4000140:
             this.IOCore.updateSerialClocking();
-            this.serial.writeJOYCNT(data & 0xFF);
+            this.serial.writeJOYCNT(data & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000141h - JOYCNT - JOY BUS Control Register (R/W)
@@ -1014,55 +1011,55 @@ GameBoyAdvanceMemory.prototype.writeIODispatch8 = function (address, data) {
         //4000150h - JoyBus Receive (R/W)
         case 0x4000150:
             this.IOCore.updateSerialClocking();
-            this.serial.writeJOYBUS_RECV0(data & 0xFF);
+            this.serial.writeJOYBUS_RECV0(data & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000151h - JoyBus Receive (R/W)
         case 0x4000151:
             this.IOCore.updateSerialClocking();
-            this.serial.writeJOYBUS_RECV1(data & 0xFF);
+            this.serial.writeJOYBUS_RECV1(data & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000152h - JoyBus Receive (R/W)
         case 0x4000152:
             this.IOCore.updateSerialClocking();
-            this.serial.writeJOYBUS_RECV2(data & 0xFF);
+            this.serial.writeJOYBUS_RECV2(data & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000153h - JoyBus Receive (R/W)
         case 0x4000153:
             this.IOCore.updateSerialClocking();
-            this.serial.writeJOYBUS_RECV3(data & 0xFF);
+            this.serial.writeJOYBUS_RECV3(data & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000154h - JoyBus Send (R/W)
         case 0x4000154:
             this.IOCore.updateSerialClocking();
-            this.serial.writeJOYBUS_SEND0(data & 0xFF);
+            this.serial.writeJOYBUS_SEND0(data & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000155h - JoyBus Send (R/W)
         case 0x4000155:
             this.IOCore.updateSerialClocking();
-            this.serial.writeJOYBUS_SEND1(data & 0xFF);
+            this.serial.writeJOYBUS_SEND1(data & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000156h - JoyBus Send (R/W)
         case 0x4000156:
             this.IOCore.updateSerialClocking();
-            this.serial.writeJOYBUS_SEND2(data & 0xFF);
+            this.serial.writeJOYBUS_SEND2(data & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000157h - JoyBus Send (R/W)
         case 0x4000157:
             this.IOCore.updateSerialClocking();
-            this.serial.writeJOYBUS_SEND3(data & 0xFF);
+            this.serial.writeJOYBUS_SEND3(data & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000158h - JoyBus Stat (R/W)
         case 0x4000158:
             this.IOCore.updateSerialClocking();
-            this.serial.writeJOYBUS_STAT(data & 0xFF);
+            this.serial.writeJOYBUS_STAT(data & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000159h through 40001FFh - NOT USED - GLITCHED
@@ -1106,12 +1103,12 @@ GameBoyAdvanceMemory.prototype.writeIODispatch8 = function (address, data) {
             this.wait.writeHALTCNT(data | 0);
             break;
         default:
-            if ((address & 0xFFFC) == 0x800) {
+            if ((address & 0xfffc) == 0x800) {
                 //WRAM wait state control:
                 this.wait.writeConfigureWRAM8(address | 0, data | 0);
             }
     }
-}
+};
 GameBoyAdvanceMemory.prototype.writeIODispatch16 = function (address, data) {
     address = address | 0;
     data = data | 0;
@@ -1135,15 +1132,15 @@ GameBoyAdvanceMemory.prototype.writeIODispatch16 = function (address, data) {
             this.gfxRenderer.writeBG0CNT16(data | 0);
             break;
         //400000Ah - BG1CNT - BG1 Control (R/W) (BG Modes 0,1 only)
-        case 0x400000A:
+        case 0x400000a:
             this.gfxRenderer.writeBG1CNT16(data | 0);
             break;
         //400000Ch - BG2CNT - BG2 Control (R/W) (BG Modes 0,1,2 only)
-        case 0x400000C:
+        case 0x400000c:
             this.gfxRenderer.writeBG2CNT16(data | 0);
             break;
         //400000Eh - BG3CNT - BG3 Control (R/W) (BG Modes 0,2 only)
-        case 0x400000E:
+        case 0x400000e:
             this.gfxRenderer.writeBG3CNT16(data | 0);
             break;
         //4000010h - BG0HOFS - BG0 X-Offset (W)
@@ -1167,15 +1164,15 @@ GameBoyAdvanceMemory.prototype.writeIODispatch16 = function (address, data) {
             this.gfxRenderer.writeBG2HOFS16(data | 0);
             break;
         //400001Ah - BG2VOFS - BG2 Y-Offset (W)
-        case 0x400001A:
+        case 0x400001a:
             this.gfxRenderer.writeBG2VOFS16(data | 0);
             break;
         //400001Ch - BG3HOFS - BG3 X-Offset (W)
-        case 0x400001C:
+        case 0x400001c:
             this.gfxRenderer.writeBG3HOFS16(data | 0);
             break;
         //400001Eh - BG3VOFS - BG3 Y-Offset (W)
-        case 0x400001E:
+        case 0x400001e:
             this.gfxRenderer.writeBG3VOFS16(data | 0);
             break;
         //4000020h - BG2PA - BG2 Rotation/Scaling Parameter A (alias dx) (W)
@@ -1199,15 +1196,15 @@ GameBoyAdvanceMemory.prototype.writeIODispatch16 = function (address, data) {
             this.gfxRenderer.writeBG2X16_0(data | 0);
             break;
         //400002Ah - BG2X_H - BG2 Reference Point X-Coordinate, upper 12 bit (W)
-        case 0x400002A:
+        case 0x400002a:
             this.gfxRenderer.writeBG2X16_1(data | 0);
             break;
         //400002Ch - BG2Y_L - BG2 Reference Point Y-Coordinate, lower 16 bit (W)
-        case 0x400002C:
+        case 0x400002c:
             this.gfxRenderer.writeBG2Y16_0(data | 0);
             break;
         //400002Eh - BG2Y_H - BG2 Reference Point Y-Coordinate, upper 12 bit (W)
-        case 0x400002E:
+        case 0x400002e:
             this.gfxRenderer.writeBG2Y16_1(data | 0);
             break;
         //4000030h - BG3PA - BG3 Rotation/Scaling Parameter A (alias dx) (W)
@@ -1231,15 +1228,15 @@ GameBoyAdvanceMemory.prototype.writeIODispatch16 = function (address, data) {
             this.gfxRenderer.writeBG3X16_0(data | 0);
             break;
         //400003Ah - BG3X_H - BG3 Reference Point X-Coordinate, upper 12 bit (W)
-        case 0x400003A:
+        case 0x400003a:
             this.gfxRenderer.writeBG3X16_1(data | 0);
             break;
         //400003Ch - BG3Y_L - BG3 Reference Point Y-Coordinate, lower 16 bit (W)
-        case 0x400003C:
+        case 0x400003c:
             this.gfxRenderer.writeBG3Y16_0(data | 0);
             break;
         //400003Eh - BG3Y_H - BG3 Reference Point Y-Coordinate, upper 12 bit (W)
-        case 0x400003E:
+        case 0x400003e:
             this.gfxRenderer.writeBG3Y16_1(data | 0);
             break;
         //4000040h - WIN0H - Window 0 Horizontal Dimensions (W)
@@ -1263,11 +1260,11 @@ GameBoyAdvanceMemory.prototype.writeIODispatch16 = function (address, data) {
             this.gfxRenderer.writeWININ16(data | 0);
             break;
         //400004Ah- WINOUT - Control of Outside of Windows & Inside of OBJ Window (R/W)
-        case 0x400004A:
+        case 0x400004a:
             this.gfxRenderer.writeWINOUT16(data | 0);
             break;
         //400004Ch - MOSAIC - Mosaic Size (W)
-        case 0x400004C:
+        case 0x400004c:
             this.gfxRenderer.writeMOSAIC16(data | 0);
             break;
         //400004Eh - NOT USED - ZERO
@@ -1308,7 +1305,7 @@ GameBoyAdvanceMemory.prototype.writeIODispatch16 = function (address, data) {
             break;
         //400006Ah - NOT USED - ZERO
         //400006Ch - SOUND2CNT_H (NR23, NR24) - Channel 2 Frequency/Control (R/W)
-        case 0x400006C:
+        case 0x400006c:
             //NR23:
             //NR24:
             this.sound.writeSOUND2CNTH16(data | 0);
@@ -1340,7 +1337,7 @@ GameBoyAdvanceMemory.prototype.writeIODispatch16 = function (address, data) {
             break;
         //400007Ah - NOT USED - ZERO
         //400007Ch - SOUND4CNT_H (NR43, NR44) - Channel 4 Frequency/Control (R/W)
-        case 0x400007C:
+        case 0x400007c:
             //NR43:
             //NR44:
             this.sound.writeSOUND4CNTH16(data | 0);
@@ -1377,120 +1374,120 @@ GameBoyAdvanceMemory.prototype.writeIODispatch16 = function (address, data) {
         //4000098h - WAVE_RAM2_L - Channel 3 Wave Pattern RAM (W/R)
         case 0x4000098:
         //400009Ah - WAVE_RAM2_H - Channel 3 Wave Pattern RAM (W/R)
-        case 0x400009A:
+        case 0x400009a:
         //400009Ch - WAVE_RAM3_L - Channel 3 Wave Pattern RAM (W/R)
-        case 0x400009C:
+        case 0x400009c:
         //400009Eh - WAVE_RAM3_H - Channel 3 Wave Pattern RAM (W/R)
-        case 0x400009E:
-            this.sound.writeWAVE16(address & 0xE, data | 0);
+        case 0x400009e:
+            this.sound.writeWAVE16(address & 0xe, data | 0);
             break;
         //40000A0h - FIFO_A_L - FIFO Channel A First Word (W)
-        case 0x40000A0:
+        case 0x40000a0:
         //40000A2h - FIFO_A_H - FIFO Channel A Second Word (W)
-        case 0x40000A2:
+        case 0x40000a2:
             this.sound.writeFIFOA16(data | 0);
             break;
         //40000A4h - FIFO_B_L - FIFO Channel B First Word (W)
-        case 0x40000A4:
+        case 0x40000a4:
         //40000A6h - FIFO_B_H - FIFO Channel B Second Word (W)
-        case 0x40000A6:
+        case 0x40000a6:
             this.sound.writeFIFOB16(data | 0);
             break;
         //40000A8h through 40000AFh - NOT USED - GLITCHED
         //40000B0h - DMA0SAD - DMA 0 Source Address (W) (internal memory)
-        case 0x40000B0:
+        case 0x40000b0:
             this.dmaChannel0.writeDMASource16_0(data | 0);
             break;
         //40000B2h - DMA0SAH - DMA 0 Source Address (W) (internal memory)
-        case 0x40000B2:
+        case 0x40000b2:
             this.dmaChannel0.writeDMASource16_1(data | 0);
             break;
         //40000B4h - DMA0DAD - DMA 0 Destination Address (W) (internal memory)
-        case 0x40000B4:
+        case 0x40000b4:
             this.dmaChannel0.writeDMADestination16_0(data | 0);
             break;
         //40000B6h - DMA0DAH - DMA 0 Destination Address (W) (internal memory)
-        case 0x40000B6:
+        case 0x40000b6:
             this.dmaChannel0.writeDMADestination16_1(data | 0);
             break;
         //40000B8h - DMA0CNT_L - DMA 0 Word Count (W) (14 bit, 1..4000h)
-        case 0x40000B8:
+        case 0x40000b8:
             this.dmaChannel0.writeDMAWordCount16(data | 0);
             break;
         //40000BAh - DMA0CNT_H - DMA 0 Control (R/W)
-        case 0x40000BA:
+        case 0x40000ba:
             this.dmaChannel0.writeDMAControl16(data | 0);
             break;
         //40000BCh - DMA1SAD - DMA 1 Source Address (W) (internal memory)
-        case 0x40000BC:
+        case 0x40000bc:
             this.dmaChannel1.writeDMASource16_0(data | 0);
             break;
         //40000BEh - DMA1SAH - DMA 1 Source Address (W) (internal memory)
-        case 0x40000BE:
+        case 0x40000be:
             this.dmaChannel1.writeDMASource16_1(data | 0);
             break;
         //40000C0h - DMA1DAD - DMA 1 Destination Address (W) (internal memory)
-        case 0x40000C0:
+        case 0x40000c0:
             this.dmaChannel1.writeDMADestination16_0(data | 0);
             break;
         //40000C2h - DMA1DAH - DMA 1 Destination Address (W) (internal memory)
-        case 0x40000C2:
+        case 0x40000c2:
             this.dmaChannel1.writeDMADestination16_1(data | 0);
             break;
         //40000C4h - DMA1CNT_L - DMA 1 Word Count (W) (14 bit, 1..4000h)
-        case 0x40000C4:
+        case 0x40000c4:
             this.dmaChannel1.writeDMAWordCount16(data | 0);
             break;
         //40000C6h - DMA1CNT_H - DMA 1 Control (R/W)
-        case 0x40000C6:
+        case 0x40000c6:
             this.dmaChannel1.writeDMAControl16(data | 0);
             break;
         //40000C8h - DMA2SAD - DMA 2 Source Address (W) (internal memory)
-        case 0x40000C8:
+        case 0x40000c8:
             this.dmaChannel2.writeDMASource16_0(data | 0);
             break;
         //40000CAh - DMA2SAH - DMA 2 Source Address (W) (internal memory)
-        case 0x40000CA:
+        case 0x40000ca:
             this.dmaChannel2.writeDMASource16_1(data | 0);
             break;
         //40000CCh - DMA2DAD - DMA 2 Destination Address (W) (internal memory)
-        case 0x40000CC:
+        case 0x40000cc:
             this.dmaChannel2.writeDMADestination16_0(data | 0);
             break;
         //40000CEh - DMA2DAH - DMA 2 Destination Address (W) (internal memory)
-        case 0x40000CE:
+        case 0x40000ce:
             this.dmaChannel2.writeDMADestination16_1(data | 0);
             break;
         //40000D0h - DMA2CNT_L - DMA 2 Word Count (W) (14 bit, 1..4000h)
-        case 0x40000D0:
+        case 0x40000d0:
             this.dmaChannel2.writeDMAWordCount16(data | 0);
             break;
         //40000D2h - DMA2CNT_H - DMA 2 Control (R/W)
-        case 0x40000D2:
+        case 0x40000d2:
             this.dmaChannel2.writeDMAControl16(data | 0);
             break;
         //40000D4h - DMA3SAD - DMA 3 Source Address (W) (internal memory)
-        case 0x40000D4:
+        case 0x40000d4:
             this.dmaChannel3.writeDMASource16_0(data | 0);
             break;
         //40000D6h - DMA3SAH - DMA 3 Source Address (W) (internal memory)
-        case 0x40000D6:
+        case 0x40000d6:
             this.dmaChannel3.writeDMASource16_1(data | 0);
             break;
         //40000D8h - DMA3DAD - DMA 3 Destination Address (W) (internal memory)
-        case 0x40000D8:
+        case 0x40000d8:
             this.dmaChannel3.writeDMADestination16_0(data | 0);
             break;
         //40000DAh - DMA3DAH - DMA 3 Destination Address (W) (internal memory)
-        case 0x40000DA:
+        case 0x40000da:
             this.dmaChannel3.writeDMADestination16_1(data | 0);
             break;
         //40000DCh - DMA3CNT_L - DMA 3 Word Count (W) (16 bit, 1..10000h)
-        case 0x40000DC:
+        case 0x40000dc:
             this.dmaChannel3.writeDMAWordCount16(data | 0);
             break;
         //40000DEh - DMA3CNT_H - DMA 3 Control (R/W)
-        case 0x40000DE:
+        case 0x40000de:
             this.dmaChannel3.writeDMAControl16(data | 0);
             break;
         //40000E0h through 40000FFh - NOT USED - GLITCHED
@@ -1515,58 +1512,58 @@ GameBoyAdvanceMemory.prototype.writeIODispatch16 = function (address, data) {
             this.timer.writeTM2CNT16(data | 0);
             break;
         //400010Ah - TM2CNT_H - Timer 2 Control (R/W)
-        case 0x400010A:
+        case 0x400010a:
             this.timer.writeTM2CNT8_2(data | 0);
             break;
         //400010Ch - TM3CNT_L - Timer 3 Counter/Reload (R/W)
-        case 0x400010C:
+        case 0x400010c:
             this.timer.writeTM3CNT16(data | 0);
             break;
         //400010Eh - TM3CNT_H - Timer 3 Control (R/W)
-        case 0x400010E:
+        case 0x400010e:
             this.timer.writeTM3CNT8_2(data | 0);
             break;
         //4000110h through 400011Fh - NOT USED - GLITCHED
         //4000120h - Serial Data A (R/W)
         case 0x4000120:
             this.IOCore.updateSerialClocking();
-            this.serial.writeSIODATA_A0(data & 0xFF);
-            this.serial.writeSIODATA_A1((data >> 8) & 0xFF);
+            this.serial.writeSIODATA_A0(data & 0xff);
+            this.serial.writeSIODATA_A1((data >> 8) & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000122h - Serial Data B (R/W)
         case 0x4000122:
             this.IOCore.updateSerialClocking();
-            this.serial.writeSIODATA_B0(data & 0xFF);
-            this.serial.writeSIODATA_B1((data >> 8) & 0xFF);
+            this.serial.writeSIODATA_B0(data & 0xff);
+            this.serial.writeSIODATA_B1((data >> 8) & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000124h - Serial Data C (R/W)
         case 0x4000124:
             this.IOCore.updateSerialClocking();
-            this.serial.writeSIODATA_C0(data & 0xFF);
-            this.serial.writeSIODATA_C1((data >> 8) & 0xFF);
+            this.serial.writeSIODATA_C0(data & 0xff);
+            this.serial.writeSIODATA_C1((data >> 8) & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000126h - Serial Data D (R/W)
         case 0x4000126:
             this.IOCore.updateSerialClocking();
-            this.serial.writeSIODATA_D0(data & 0xFF);
-            this.serial.writeSIODATA_D1((data >> 8) & 0xFF);
+            this.serial.writeSIODATA_D0(data & 0xff);
+            this.serial.writeSIODATA_D1((data >> 8) & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000128h - SIOCNT - SIO Sub Mode Control (R/W)
         case 0x4000128:
             this.IOCore.updateSerialClocking();
-            this.serial.writeSIOCNT0(data & 0xFF);
-            this.serial.writeSIOCNT1((data >> 8) & 0xFF);
+            this.serial.writeSIOCNT0(data & 0xff);
+            this.serial.writeSIOCNT1((data >> 8) & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //400012Ah - SIOMLT_SEND - Data Send Register (R/W)
-        case 0x400012A:
+        case 0x400012a:
             this.IOCore.updateSerialClocking();
-            this.serial.writeSIODATA8_0(data & 0xFF);
-            this.serial.writeSIODATA8_1((data >> 8) & 0xFF);
+            this.serial.writeSIODATA8_0(data & 0xff);
+            this.serial.writeSIODATA8_1((data >> 8) & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //400012Ch through 400012Fh - NOT USED - GLITCHED
@@ -1578,50 +1575,50 @@ GameBoyAdvanceMemory.prototype.writeIODispatch16 = function (address, data) {
         //4000134h - RCNT (R/W) - Mode Selection
         case 0x4000134:
             this.IOCore.updateSerialClocking();
-            this.serial.writeRCNT0(data & 0xFF);
-            this.serial.writeRCNT1((data >> 8) & 0xFF);
+            this.serial.writeRCNT0(data & 0xff);
+            this.serial.writeRCNT1((data >> 8) & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000136h through 400013Fh - NOT USED - GLITCHED
         //4000140h - JOYCNT - JOY BUS Control Register (R/W)
         case 0x4000140:
             this.IOCore.updateSerialClocking();
-            this.serial.writeJOYCNT(data & 0xFF);
+            this.serial.writeJOYCNT(data & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000142h through 400014Fh - NOT USED - GLITCHED
         //4000150h - JoyBus Receive (R/W)
         case 0x4000150:
             this.IOCore.updateSerialClocking();
-            this.serial.writeJOYBUS_RECV0(data & 0xFF);
-            this.serial.writeJOYBUS_RECV1((data >> 8) & 0xFF);
+            this.serial.writeJOYBUS_RECV0(data & 0xff);
+            this.serial.writeJOYBUS_RECV1((data >> 8) & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000152h - JoyBus Receive (R/W)
         case 0x4000152:
             this.IOCore.updateSerialClocking();
-            this.serial.writeJOYBUS_RECV2(data & 0xFF);
-            this.serial.writeJOYBUS_RECV3((data >> 8) & 0xFF);
+            this.serial.writeJOYBUS_RECV2(data & 0xff);
+            this.serial.writeJOYBUS_RECV3((data >> 8) & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000154h - JoyBus Send (R/W)
         case 0x4000154:
             this.IOCore.updateSerialClocking();
-            this.serial.writeJOYBUS_SEND0(data & 0xFF);
-            this.serial.writeJOYBUS_SEND1((data >> 8) & 0xFF);
+            this.serial.writeJOYBUS_SEND0(data & 0xff);
+            this.serial.writeJOYBUS_SEND1((data >> 8) & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000156h - JoyBus Send (R/W)
         case 0x4000156:
             this.IOCore.updateSerialClocking();
-            this.serial.writeJOYBUS_SEND2(data & 0xFF);
-            this.serial.writeJOYBUS_SEND3((data >> 8) & 0xFF);
+            this.serial.writeJOYBUS_SEND2(data & 0xff);
+            this.serial.writeJOYBUS_SEND3((data >> 8) & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000158h - JoyBus Stat (R/W)
         case 0x4000158:
             this.IOCore.updateSerialClocking();
-            this.serial.writeJOYBUS_STAT(data & 0xFF);
+            this.serial.writeJOYBUS_STAT(data & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000159h through 40001FFh - NOT USED - GLITCHED
@@ -1648,12 +1645,12 @@ GameBoyAdvanceMemory.prototype.writeIODispatch16 = function (address, data) {
             this.wait.writeHALT16(data | 0);
             break;
         default:
-            if ((address & 0xFFFC) == 0x800) {
+            if ((address & 0xfffc) == 0x800) {
                 //WRAM wait state control:
                 this.wait.writeConfigureWRAM16(address | 0, data | 0);
             }
     }
-}
+};
 GameBoyAdvanceMemory.prototype.writeIODispatch32 = function (address, data) {
     address = address | 0;
     data = data | 0;
@@ -1676,7 +1673,7 @@ GameBoyAdvanceMemory.prototype.writeIODispatch32 = function (address, data) {
             break;
         //400000Ch - BG2CNT - BG2 Control (R/W) (BG Modes 0,1,2 only)
         //400000Eh - BG3CNT - BG3 Control (R/W) (BG Modes 0,2 only)
-        case 0x400000C:
+        case 0x400000c:
             this.gfxRenderer.writeBG2BG3CNT32(data | 0);
             break;
         //4000010h - BG0HOFS - BG0 X-Offset (W)
@@ -1696,7 +1693,7 @@ GameBoyAdvanceMemory.prototype.writeIODispatch32 = function (address, data) {
             break;
         //400001Ch - BG3HOFS - BG3 X-Offset (W)
         //400001Eh - BG3VOFS - BG3 Y-Offset (W)
-        case 0x400001C:
+        case 0x400001c:
             this.gfxRenderer.writeBG3OFS32(data | 0);
             break;
         //4000020h - BG2PA - BG2 Rotation/Scaling Parameter A (alias dx) (W)
@@ -1716,7 +1713,7 @@ GameBoyAdvanceMemory.prototype.writeIODispatch32 = function (address, data) {
             break;
         //400002Ch - BG2Y_L - BG2 Reference Point Y-Coordinate, lower 16 bit (W)
         //400002Eh - BG2Y_H - BG2 Reference Point Y-Coordinate, upper 12 bit (W)
-        case 0x400002C:
+        case 0x400002c:
             this.gfxRenderer.writeBG2Y32(data | 0);
             break;
         //4000030h - BG3PA - BG3 Rotation/Scaling Parameter A (alias dx) (W)
@@ -1736,7 +1733,7 @@ GameBoyAdvanceMemory.prototype.writeIODispatch32 = function (address, data) {
             break;
         //400003Ch - BG3Y_L - BG3 Reference Point Y-Coordinate, lower 16 bit (W)
         //400003Eh - BG3Y_H - BG3 Reference Point Y-Coordinate, upper 12 bit (W)
-        case 0x400003C:
+        case 0x400003c:
             this.gfxRenderer.writeBG3Y32(data | 0);
             break;
         //4000040h - WIN0H - Window 0 Horizontal Dimensions (W)
@@ -1756,7 +1753,7 @@ GameBoyAdvanceMemory.prototype.writeIODispatch32 = function (address, data) {
             break;
         //400004Ch - MOSAIC - Mosaic Size (W)
         //400004Eh - NOT USED - ZERO
-        case 0x400004C:
+        case 0x400004c:
             this.gfxRenderer.writeMOSAIC16(data | 0);
             break;
         //4000050h - BLDCNT - Color Special Effects Selection (R/W)
@@ -1791,7 +1788,7 @@ GameBoyAdvanceMemory.prototype.writeIODispatch32 = function (address, data) {
             break;
         //400006Ch - SOUND2CNT_H (NR23, NR24) - Channel 2 Frequency/Control (R/W)
         //400006Eh - NOT USED - ZERO
-        case 0x400006C:
+        case 0x400006c:
             //NR23:
             //NR24:
             this.sound.writeSOUND2CNTH16(data | 0);
@@ -1820,7 +1817,7 @@ GameBoyAdvanceMemory.prototype.writeIODispatch32 = function (address, data) {
             break;
         //400007Ch - SOUND4CNT_H (NR43, NR44) - Channel 4 Frequency/Control (R/W)
         //400007Eh - NOT USED - ZERO
-        case 0x400007C:
+        case 0x400007c:
             //NR43:
             //NR44:
             this.sound.writeSOUND4CNTH16(data | 0);
@@ -1853,78 +1850,78 @@ GameBoyAdvanceMemory.prototype.writeIODispatch32 = function (address, data) {
         case 0x4000098:
         //400009Ch - WAVE_RAM3_L - Channel 3 Wave Pattern RAM (W/R)
         //400009Eh - WAVE_RAM3_H - Channel 3 Wave Pattern RAM (W/R)
-        case 0x400009C:
-            this.sound.writeWAVE32(address & 0xC, data | 0);
+        case 0x400009c:
+            this.sound.writeWAVE32(address & 0xc, data | 0);
             break;
         //40000A0h - FIFO_A_L - FIFO Channel A First Word (W)
         //40000A2h - FIFO_A_H - FIFO Channel A Second Word (W)
-        case 0x40000A0:
+        case 0x40000a0:
             this.sound.writeFIFOA32(data | 0);
             break;
         //40000A4h - FIFO_B_L - FIFO Channel B First Word (W)
         //40000A6h - FIFO_B_H - FIFO Channel B Second Word (W)
-        case 0x40000A4:
+        case 0x40000a4:
             this.sound.writeFIFOB32(data | 0);
             break;
         //40000A8h through 40000AFh - NOT USED - GLITCHED
         //40000B0h - DMA0SAH - DMA 0 Source Address (W) (internal memory)
         //40000B2h - DMA0SAD - DMA 0 Source Address (W) (internal memory)
-        case 0x40000B0:
+        case 0x40000b0:
             this.dmaChannel0.writeDMASource32(data | 0);
             break;
         //40000B4h - DMA0DAD - DMA 0 Destination Address (W) (internal memory)
         //40000B6h - DMA0DAH - DMA 0 Destination Address (W) (internal memory)
-        case 0x40000B4:
+        case 0x40000b4:
             this.dmaChannel0.writeDMADestination32(data | 0);
             break;
         //40000B8h - DMA0CNT_L - DMA 0 Word Count (W) (14 bit, 1..4000h)
         //40000BAh - DMA0CNT_H - DMA 0 Control (R/W)
-        case 0x40000B8:
+        case 0x40000b8:
             this.dmaChannel0.writeDMAControl32(data | 0);
             break;
         //40000BCh - DMA1SAD - DMA 1 Source Address (W) (internal memory)
         //40000BEh - DMA1SAH - DMA 1 Source Address (W) (internal memory)
-        case 0x40000BC:
+        case 0x40000bc:
             this.dmaChannel1.writeDMASource32(data | 0);
             break;
         //40000C0h - DMA1DAD - DMA 1 Destination Address (W) (internal memory)
         //40000C2h - DMA1DAH - DMA 1 Destination Address (W) (internal memory)
-        case 0x40000C0:
+        case 0x40000c0:
             this.dmaChannel1.writeDMADestination32(data | 0);
             break;
         //40000C4h - DMA1CNT_L - DMA 1 Word Count (W) (14 bit, 1..4000h)
         //40000C6h - DMA1CNT_H - DMA 1 Control (R/W)
-        case 0x40000C4:
+        case 0x40000c4:
             this.dmaChannel1.writeDMAControl32(data | 0);
             break;
         //40000C8h - DMA2SAD - DMA 2 Source Address (W) (internal memory)
         //40000CAh - DMA2SAH - DMA 2 Source Address (W) (internal memory)
-        case 0x40000C8:
+        case 0x40000c8:
             this.dmaChannel2.writeDMASource32(data | 0);
             break;
         //40000CCh - DMA2DAD - DMA 2 Destination Address (W) (internal memory)
         //40000CEh - DMA2DAH - DMA 2 Destination Address (W) (internal memory)
-        case 0x40000CC:
+        case 0x40000cc:
             this.dmaChannel2.writeDMADestination32(data | 0);
             break;
         //40000D0h - DMA2CNT_L - DMA 2 Word Count (W) (14 bit, 1..4000h)
         //40000D2h - DMA2CNT_H - DMA 2 Control (R/W)
-        case 0x40000D0:
+        case 0x40000d0:
             this.dmaChannel2.writeDMAControl32(data | 0);
             break;
         //40000D4h - DMA3SAD - DMA 3 Source Address (W) (internal memory)
         //40000D6h - DMA3SAH - DMA 3 Source Address (W) (internal memory)
-        case 0x40000D4:
+        case 0x40000d4:
             this.dmaChannel3.writeDMASource32(data | 0);
             break;
         //40000D8h - DMA3DAD - DMA 3 Destination Address (W) (internal memory)
         //40000DAh - DMA3DAH - DMA 3 Destination Address (W) (internal memory)
-        case 0x40000D8:
+        case 0x40000d8:
             this.dmaChannel3.writeDMADestination32(data | 0);
             break;
         //40000DCh - DMA3CNT_L - DMA 3 Word Count (W) (16 bit, 1..10000h)
         //40000DEh - DMA3CNT_H - DMA 3 Control (R/W)
-        case 0x40000DC:
+        case 0x40000dc:
             this.dmaChannel3.writeDMAControl32(data | 0);
             break;
         //40000E0h through 40000FFh - NOT USED - GLITCHED
@@ -1945,7 +1942,7 @@ GameBoyAdvanceMemory.prototype.writeIODispatch32 = function (address, data) {
             break;
         //400010Ch - TM3CNT_L - Timer 3 Counter/Reload (R/W)
         //400010Eh - TM3CNT_H - Timer 3 Control (R/W)
-        case 0x400010C:
+        case 0x400010c:
             this.timer.writeTM3CNT32(data | 0);
             break;
         //4000110h through 400011Fh - NOT USED - GLITCHED
@@ -1953,9 +1950,9 @@ GameBoyAdvanceMemory.prototype.writeIODispatch32 = function (address, data) {
         //4000122h - Serial Data B (R/W)
         case 0x4000120:
             this.IOCore.updateSerialClocking();
-            this.serial.writeSIODATA_A0(data & 0xFF);
-            this.serial.writeSIODATA_A1((data >> 8) & 0xFF);
-            this.serial.writeSIODATA_B0((data >> 16) & 0xFF);
+            this.serial.writeSIODATA_A0(data & 0xff);
+            this.serial.writeSIODATA_A1((data >> 8) & 0xff);
+            this.serial.writeSIODATA_B0((data >> 16) & 0xff);
             this.serial.writeSIODATA_B1(data >>> 24);
             this.IOCore.updateCoreEventTime();
             break;
@@ -1963,9 +1960,9 @@ GameBoyAdvanceMemory.prototype.writeIODispatch32 = function (address, data) {
         //4000126h - Serial Data D (R/W)
         case 0x4000124:
             this.IOCore.updateSerialClocking();
-            this.serial.writeSIODATA_C0(data & 0xFF);
-            this.serial.writeSIODATA_C1((data >> 8) & 0xFF);
-            this.serial.writeSIODATA_D0((data >> 16) & 0xFF);
+            this.serial.writeSIODATA_C0(data & 0xff);
+            this.serial.writeSIODATA_C1((data >> 8) & 0xff);
+            this.serial.writeSIODATA_D0((data >> 16) & 0xff);
             this.serial.writeSIODATA_D1(data >>> 24);
             this.IOCore.updateCoreEventTime();
             break;
@@ -1973,9 +1970,9 @@ GameBoyAdvanceMemory.prototype.writeIODispatch32 = function (address, data) {
         //400012Ah - SIOMLT_SEND - Data Send Register (R/W)
         case 0x4000128:
             this.IOCore.updateSerialClocking();
-            this.serial.writeSIOCNT0(data & 0xFF);
-            this.serial.writeSIOCNT1((data >> 8) & 0xFF);
-            this.serial.writeSIODATA8_0((data >> 16) & 0xFF);
+            this.serial.writeSIOCNT0(data & 0xff);
+            this.serial.writeSIOCNT1((data >> 8) & 0xff);
+            this.serial.writeSIODATA8_0((data >> 16) & 0xff);
             this.serial.writeSIODATA8_1(data >>> 24);
             this.IOCore.updateCoreEventTime();
             break;
@@ -1988,15 +1985,15 @@ GameBoyAdvanceMemory.prototype.writeIODispatch32 = function (address, data) {
         //4000134h - RCNT (R/W) - Mode Selection
         case 0x4000134:
             this.IOCore.updateSerialClocking();
-            this.serial.writeRCNT0(data & 0xFF);
-            this.serial.writeRCNT1((data >> 8) & 0xFF);
+            this.serial.writeRCNT0(data & 0xff);
+            this.serial.writeRCNT1((data >> 8) & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000136h through 400013Fh - NOT USED - GLITCHED
         //4000140h - JOYCNT - JOY BUS Control Register (R/W)
         case 0x4000140:
             this.IOCore.updateSerialClocking();
-            this.serial.writeJOYCNT(data & 0xFF);
+            this.serial.writeJOYCNT(data & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000142h through 400014Fh - NOT USED - GLITCHED
@@ -2004,9 +2001,9 @@ GameBoyAdvanceMemory.prototype.writeIODispatch32 = function (address, data) {
         //4000152h - JoyBus Receive (R/W)
         case 0x4000150:
             this.IOCore.updateSerialClocking();
-            this.serial.writeJOYBUS_RECV0(data & 0xFF);
-            this.serial.writeJOYBUS_RECV1((data >> 8) & 0xFF);
-            this.serial.writeJOYBUS_RECV2((data >> 16) & 0xFF);
+            this.serial.writeJOYBUS_RECV0(data & 0xff);
+            this.serial.writeJOYBUS_RECV1((data >> 8) & 0xff);
+            this.serial.writeJOYBUS_RECV2((data >> 16) & 0xff);
             this.serial.writeJOYBUS_RECV3(data >>> 24);
             this.IOCore.updateCoreEventTime();
             break;
@@ -2014,16 +2011,16 @@ GameBoyAdvanceMemory.prototype.writeIODispatch32 = function (address, data) {
         //4000156h - JoyBus Send (R/W)
         case 0x4000154:
             this.IOCore.updateSerialClocking();
-            this.serial.writeJOYBUS_SEND0(data & 0xFF);
-            this.serial.writeJOYBUS_SEND1((data >> 8) & 0xFF);
-            this.serial.writeJOYBUS_SEND2((data >> 16) & 0xFF);
+            this.serial.writeJOYBUS_SEND0(data & 0xff);
+            this.serial.writeJOYBUS_SEND1((data >> 8) & 0xff);
+            this.serial.writeJOYBUS_SEND2((data >> 16) & 0xff);
             this.serial.writeJOYBUS_SEND3(data >>> 24);
             this.IOCore.updateCoreEventTime();
             break;
         //4000158h - JoyBus Stat (R/W)
         case 0x4000158:
             this.IOCore.updateSerialClocking();
-            this.serial.writeJOYBUS_STAT(data & 0xFF);
+            this.serial.writeJOYBUS_STAT(data & 0xff);
             this.IOCore.updateCoreEventTime();
             break;
         //4000159h through 40001FFh - NOT USED - GLITCHED
@@ -2048,13 +2045,13 @@ GameBoyAdvanceMemory.prototype.writeIODispatch32 = function (address, data) {
             this.wait.writeHALT16(data | 0);
             break;
         default:
-            if ((address & 0xFFFC) == 0x800) {
+            if ((address & 0xfffc) == 0x800) {
                 //WRAM wait state control:
                 this.wait.writeConfigureWRAM32(data | 0);
             }
     }
-}
-if (typeof Math.imul == "function") {
+};
+if (typeof Math.imul == 'function') {
     //Math.imul found, insert the optimized path in:
     GameBoyAdvanceMemory.prototype.writeVRAM8Preliminary = function (address, data) {
         address = address | 0;
@@ -2063,7 +2060,7 @@ if (typeof Math.imul == "function") {
         switch (address >> 24) {
             case 0x5:
                 this.wait.VRAMAccess();
-                this.gfxRenderer.writePalette16(address & 0x3FE, Math.imul(data & 0xFF, 0x101) | 0);
+                this.gfxRenderer.writePalette16(address & 0x3fe, Math.imul(data & 0xff, 0x101) | 0);
                 break;
             case 0x6:
                 this.wait.VRAMAccess();
@@ -2072,16 +2069,15 @@ if (typeof Math.imul == "function") {
             default:
                 this.wait.OAMAccess();
         }
-    }
-}
-else {
+    };
+} else {
     //Math.imul not found, use the compatibility method:
     GameBoyAdvanceMemory.prototype.writeVRAM8Preliminary = function (address, data) {
         this.IOCore.updateGraphicsClocking();
         switch (address >> 24) {
             case 0x5:
                 this.wait.VRAMAccess();
-                this.gfxRenderer.writePalette16(address & 0x3FE, (data & 0xFF) * 0x101);
+                this.gfxRenderer.writePalette16(address & 0x3fe, (data & 0xff) * 0x101);
                 break;
             case 0x6:
                 this.wait.VRAMAccess();
@@ -2090,96 +2086,96 @@ else {
             default:
                 this.wait.OAMAccess();
         }
-    }
+    };
 }
 GameBoyAdvanceMemory.prototype.writePalette16 = function (address, data) {
     address = address | 0;
     data = data | 0;
     this.IOCore.updateGraphicsClocking();
     this.wait.VRAMAccess();
-    this.gfxRenderer.writePalette16(address & 0x3FE, data & 0xFFFF);
-}
+    this.gfxRenderer.writePalette16(address & 0x3fe, data & 0xffff);
+};
 GameBoyAdvanceMemory.prototype.writeVRAM16 = function (address, data) {
     address = address | 0;
     data = data | 0;
     this.IOCore.updateGraphicsClocking();
     this.wait.VRAMAccess();
     this.gfxRenderer.writeVRAM16(address | 0, data | 0);
-}
+};
 GameBoyAdvanceMemory.prototype.writeOBJ16 = function (address, data) {
     address = address | 0;
     data = data | 0;
     this.IOCore.updateGraphicsClocking();
     this.wait.OAMAccess();
     this.gfxRenderer.writeOAM16(address | 0, data | 0);
-}
+};
 GameBoyAdvanceMemory.prototype.writePalette32 = function (address, data) {
     address = address | 0;
     data = data | 0;
     this.IOCore.updateGraphicsClocking();
     this.wait.VRAMAccess32();
-    this.gfxRenderer.writePalette32(address & 0x3FC, data | 0);
-}
+    this.gfxRenderer.writePalette32(address & 0x3fc, data | 0);
+};
 GameBoyAdvanceMemory.prototype.writeVRAM32 = function (address, data) {
     address = address | 0;
     data = data | 0;
     this.IOCore.updateGraphicsClocking();
     this.wait.VRAMAccess32();
     this.gfxRenderer.writeVRAM32(address | 0, data | 0);
-}
+};
 GameBoyAdvanceMemory.prototype.writeOBJ32 = function (address, data) {
     address = address | 0;
     data = data | 0;
     this.IOCore.updateGraphicsClocking();
     this.wait.OAMAccess();
     this.gfxRenderer.writeOAM32(address | 0, data | 0);
-}
+};
 GameBoyAdvanceMemory.prototype.writeROM8 = function (address, data) {
     address = address | 0;
     data = data | 0;
     this.wait.ROMAccess(address | 0);
-    this.cartridge.writeROM8(address & 0x1FFFFFF, data & 0xFF);
-}
+    this.cartridge.writeROM8(address & 0x1ffffff, data & 0xff);
+};
 GameBoyAdvanceMemory.prototype.writeROM16 = function (address, data) {
     address = address | 0;
     data = data | 0;
     this.wait.ROMAccess(address | 0);
-    this.cartridge.writeROM16(address & 0x1FFFFFE, data & 0xFFFF);
-}
+    this.cartridge.writeROM16(address & 0x1fffffe, data & 0xffff);
+};
 GameBoyAdvanceMemory.prototype.writeROM16DMA = function (address, data) {
     address = address | 0;
     data = data | 0;
     this.wait.ROMAccess(address | 0);
-    this.cartridge.writeROM16DMA(address & 0x1FFFFFE, data & 0xFFFF);
-}
+    this.cartridge.writeROM16DMA(address & 0x1fffffe, data & 0xffff);
+};
 GameBoyAdvanceMemory.prototype.writeROM32 = function (address, data) {
     address = address | 0;
     data = data | 0;
     this.wait.ROMAccess32(address | 0);
-    this.cartridge.writeROM32(address & 0x1FFFFFC, data | 0);
-}
+    this.cartridge.writeROM32(address & 0x1fffffc, data | 0);
+};
 GameBoyAdvanceMemory.prototype.writeSRAM8 = function (address, data) {
     address = address | 0;
     data = data | 0;
     this.wait.SRAMAccess();
-    this.saves.writeSRAM(address & 0xFFFF, data & 0xFF);
-}
+    this.saves.writeSRAM(address & 0xffff, data & 0xff);
+};
 GameBoyAdvanceMemory.prototype.writeSRAM16 = function (address, data) {
     address = address | 0;
     data = data | 0;
     this.wait.SRAMAccess();
-    this.saves.writeSRAM(address & 0xFFFE, (data >> ((address & 0x2) << 3)) & 0xFF);
-}
+    this.saves.writeSRAM(address & 0xfffe, (data >> ((address & 0x2) << 3)) & 0xff);
+};
 GameBoyAdvanceMemory.prototype.writeSRAM32 = function (address, data) {
     address = address | 0;
     data = data | 0;
     this.wait.SRAMAccess();
-    this.saves.writeSRAM(address & 0xFFFC, data & 0xFF);
-}
+    this.saves.writeSRAM(address & 0xfffc, data & 0xff);
+};
 GameBoyAdvanceMemory.prototype.writeUnused = function () {
     //Ignore the data write...
     this.wait.singleClock();
-}
+};
 GameBoyAdvanceMemory.prototype.remapWRAM = function (data) {
     data = data & 0x21;
     if ((data | 0) != (this.WRAMControlFlags | 0)) {
@@ -2243,7 +2239,7 @@ GameBoyAdvanceMemory.prototype.remapWRAM = function (data) {
         }
         this.WRAMControlFlags = data | 0;
     }
-}
+};
 GameBoyAdvanceMemory.prototype.readBIOS8 = function (address) {
     address = address | 0;
     var data = 0;
@@ -2251,18 +2247,16 @@ GameBoyAdvanceMemory.prototype.readBIOS8 = function (address) {
     if ((address | 0) < 0x4000) {
         if ((this.cpu.registers[15] | 0) < 0x4000) {
             //If reading from BIOS while executing it:
-            data = this.BIOS[address & 0x3FFF] | 0;
-        }
-        else {
+            data = this.BIOS[address & 0x3fff] | 0;
+        } else {
             //Not allowed to read from BIOS while executing outside of it:
-            data = (this.lastBIOSREAD >> ((address & 0x3) << 3)) & 0xFF;
+            data = (this.lastBIOSREAD >> ((address & 0x3) << 3)) & 0xff;
         }
-    }
-    else {
+    } else {
         data = this.readUnused8CPUBase(address | 0) | 0;
     }
     return data | 0;
-}
+};
 if (__LITTLE_ENDIAN__) {
     GameBoyAdvanceMemory.prototype.readBIOS16 = function (address) {
         address = address | 0;
@@ -2272,18 +2266,16 @@ if (__LITTLE_ENDIAN__) {
             address = address >> 1;
             if ((this.cpu.registers[15] | 0) < 0x4000) {
                 //If reading from BIOS while executing it:
-                data = this.BIOS16[address & 0x1FFF] | 0;
-            }
-            else {
+                data = this.BIOS16[address & 0x1fff] | 0;
+            } else {
                 //Not allowed to read from BIOS while executing outside of it:
-                data = (this.lastBIOSREAD >> ((address & 0x1) << 4)) & 0xFFFF;
+                data = (this.lastBIOSREAD >> ((address & 0x1) << 4)) & 0xffff;
             }
-        }
-        else {
+        } else {
             data = this.readUnused16CPUBase(address | 0) | 0;
         }
         return data | 0;
-    }
+    };
     GameBoyAdvanceMemory.prototype.readBIOS16DMA = function (address) {
         address = address | 0;
         var data = 0;
@@ -2292,14 +2284,13 @@ if (__LITTLE_ENDIAN__) {
             address = address >> 1;
             if ((this.cpu.registers[15] | 0) < 0x4000) {
                 //If reading from BIOS while executing it:
-                data = this.BIOS16[address & 0x1FFF] | 0;
+                data = this.BIOS16[address & 0x1fff] | 0;
             }
-        }
-        else {
+        } else {
             data = this.readUnused16DMABase(address | 0) | 0;
         }
         return data | 0;
-    }
+    };
     GameBoyAdvanceMemory.prototype.readBIOS16CPU = function (address) {
         address = address | 0;
         var data = 0;
@@ -2307,14 +2298,13 @@ if (__LITTLE_ENDIAN__) {
         if ((address | 0) < 0x4000) {
             address = address >> 1;
             //If reading from BIOS while executing it:
-            data = this.BIOS16[address & 0x1FFF] | 0;
+            data = this.BIOS16[address & 0x1fff] | 0;
             this.lastBIOSREAD = data | 0;
-        }
-        else {
+        } else {
             data = this.readUnused16CPUBase(address | 0) | 0;
         }
         return data | 0;
-    }
+    };
     GameBoyAdvanceMemory.prototype.readBIOS32 = function (address) {
         address = address | 0;
         var data = 0;
@@ -2323,18 +2313,16 @@ if (__LITTLE_ENDIAN__) {
             address = address >> 2;
             if ((this.cpu.registers[15] | 0) < 0x4000) {
                 //If reading from BIOS while executing it:
-                data = this.BIOS32[address & 0xFFF] | 0;
-            }
-            else {
+                data = this.BIOS32[address & 0xfff] | 0;
+            } else {
                 //Not allowed to read from BIOS while executing outside of it:
                 data = this.lastBIOSREAD | 0;
             }
-        }
-        else {
+        } else {
             data = this.cpu.getCurrentFetchValue() | 0;
         }
         return data | 0;
-    }
+    };
     GameBoyAdvanceMemory.prototype.readBIOS32DMA = function (address) {
         address = address | 0;
         var data = 0;
@@ -2343,14 +2331,13 @@ if (__LITTLE_ENDIAN__) {
             address = address >> 2;
             if ((this.cpu.registers[15] | 0) < 0x4000) {
                 //If reading from BIOS while executing it:
-                data = this.BIOS32[address & 0xFFF] | 0;
+                data = this.BIOS32[address & 0xfff] | 0;
             }
-        }
-        else {
+        } else {
             data = this.dma.getCurrentFetchValue() | 0;
         }
         return data | 0;
-    }
+    };
     GameBoyAdvanceMemory.prototype.readBIOS32CPU = function (address) {
         address = address | 0;
         var data = 0;
@@ -2358,48 +2345,42 @@ if (__LITTLE_ENDIAN__) {
         if ((address | 0) < 0x4000) {
             address = address >> 2;
             //If reading from BIOS while executing it:
-            data = this.BIOS32[address & 0xFFF] | 0;
+            data = this.BIOS32[address & 0xfff] | 0;
             this.lastBIOSREAD = data | 0;
-        }
-        else {
+        } else {
             data = this.cpu.getCurrentFetchValue() | 0;
         }
         return data | 0;
-    }
-}
-else {
+    };
+} else {
     GameBoyAdvanceMemory.prototype.readBIOS16 = function (address) {
         this.wait.singleClock();
         if (address < 0x4000) {
             if (this.cpu.registers[15] < 0x4000) {
                 //If reading from BIOS while executing it:
                 return this.BIOS[address & -2] | (this.BIOS[address | 1] << 8);
-            }
-            else {
+            } else {
                 //Not allowed to read from BIOS while executing outside of it:
-                return (this.lastBIOSREAD >> ((address & 0x2) << 3)) & 0xFFFF;
+                return (this.lastBIOSREAD >> ((address & 0x2) << 3)) & 0xffff;
             }
-        }
-        else {
+        } else {
             return this.readUnused16CPUBase(address);
         }
-    }
+    };
     GameBoyAdvanceMemory.prototype.readBIOS16DMA = function (address) {
         this.wait.singleClock();
         if (address < 0x4000) {
             if (this.cpu.registers[15] < 0x4000) {
                 //If reading from BIOS while executing it:
                 return this.BIOS[address & -2] | (this.BIOS[address | 1] << 8);
-            }
-            else {
+            } else {
                 //Not allowed to read from BIOS while executing outside of it:
                 return 0;
             }
-        }
-        else {
+        } else {
             return this.readUnused16DMABase(address);
         }
-    }
+    };
     GameBoyAdvanceMemory.prototype.readBIOS16CPU = function (address) {
         this.IOCore.updateCoreSingle();
         if (address < 0x4000) {
@@ -2407,174 +2388,186 @@ else {
             var data = this.BIOS[address & -2] | (this.BIOS[address | 1] << 8);
             this.lastBIOSREAD = data;
             return data;
-        }
-        else {
+        } else {
             return this.readUnused16CPUBase(address);
         }
-    }
+    };
     GameBoyAdvanceMemory.prototype.readBIOS32 = function (address) {
         this.wait.singleClock();
         if (address < 0x4000) {
             if (this.cpu.registers[15] < 0x4000) {
                 //If reading from BIOS while executing it:
                 address &= -4;
-                return this.BIOS[address] | (this.BIOS[address + 1] << 8) | (this.BIOS[address + 2] << 16)  | (this.BIOS[address + 3] << 24);
-            }
-            else {
+                return this.BIOS[address] | (this.BIOS[address + 1] << 8) | (this.BIOS[address + 2] << 16) | (this.BIOS[address + 3] << 24);
+            } else {
                 //Not allowed to read from BIOS while executing outside of it:
                 return this.lastBIOSREAD;
             }
-        }
-        else {
+        } else {
             return this.cpu.getCurrentFetchValue();
         }
-    }
+    };
     GameBoyAdvanceMemory.prototype.readBIOS32DMA = function (address) {
         this.wait.singleClock();
         if (address < 0x4000) {
             if (this.cpu.registers[15] < 0x4000) {
                 //If reading from BIOS while executing it:
                 address &= -4;
-                return this.BIOS[address] | (this.BIOS[address + 1] << 8) | (this.BIOS[address + 2] << 16)  | (this.BIOS[address + 3] << 24);
-            }
-            else {
+                return this.BIOS[address] | (this.BIOS[address + 1] << 8) | (this.BIOS[address + 2] << 16) | (this.BIOS[address + 3] << 24);
+            } else {
                 //Not allowed to read from BIOS while executing outside of it:
                 return 0;
             }
-        }
-        else {
+        } else {
             return this.dma.getCurrentFetchValue();
         }
-    }
+    };
     GameBoyAdvanceMemory.prototype.readBIOS32CPU = function (address) {
         this.IOCore.updateCoreSingle();
         if (address < 0x4000) {
             //If reading from BIOS while executing it:
             address &= -4;
-            var data = this.BIOS[address] | (this.BIOS[address + 1] << 8) | (this.BIOS[address + 2] << 16)  | (this.BIOS[address + 3] << 24);
+            var data = this.BIOS[address] | (this.BIOS[address + 1] << 8) | (this.BIOS[address + 2] << 16) | (this.BIOS[address + 3] << 24);
             this.lastBIOSREAD = data;
             return data;
-        }
-        else {
+        } else {
             return this.cpu.getCurrentFetchValue();
         }
-    }
+    };
 }
 GameBoyAdvanceMemory.prototype.readExternalWRAM8 = function (address) {
     address = address | 0;
     //External WRAM:
     this.wait.WRAMAccess();
-    return this.externalRAM[address & 0x3FFFF] | 0;
-}
+    return this.externalRAM[address & 0x3ffff] | 0;
+};
 if (__LITTLE_ENDIAN__) {
     GameBoyAdvanceMemory.prototype.readExternalWRAM16 = function (address) {
         address = address | 0;
         //External WRAM:
         this.wait.WRAMAccess();
-        return this.externalRAM16[(address >> 1) & 0x1FFFF] | 0;
-    }
+        return this.externalRAM16[(address >> 1) & 0x1ffff] | 0;
+    };
     GameBoyAdvanceMemory.prototype.readExternalWRAM16CPU = function (address) {
         address = address | 0;
         //External WRAM:
         this.wait.WRAMAccess16CPU();
-        return this.externalRAM16[(address >> 1) & 0x1FFFF] | 0;
-    }
+        return this.externalRAM16[(address >> 1) & 0x1ffff] | 0;
+    };
     GameBoyAdvanceMemory.prototype.readExternalWRAM32 = function (address) {
         address = address | 0;
         //External WRAM:
         this.wait.WRAMAccess32();
-        return this.externalRAM32[(address >> 2) & 0xFFFF] | 0;
-    }
+        return this.externalRAM32[(address >> 2) & 0xffff] | 0;
+    };
     GameBoyAdvanceMemory.prototype.readExternalWRAM32CPU = function (address) {
         address = address | 0;
         //External WRAM:
         this.wait.WRAMAccess32CPU();
-        return this.externalRAM32[(address >> 2) & 0xFFFF] | 0;
-    }
-}
-else {
+        return this.externalRAM32[(address >> 2) & 0xffff] | 0;
+    };
+} else {
     GameBoyAdvanceMemory.prototype.readExternalWRAM16 = function (address) {
         //External WRAM:
         this.wait.WRAMAccess();
-        address &= 0x3FFFE;
+        address &= 0x3fffe;
         return this.externalRAM[address] | (this.externalRAM[address + 1] << 8);
-    }
+    };
     GameBoyAdvanceMemory.prototype.readExternalWRAM16CPU = function (address) {
         //External WRAM:
         this.wait.WRAMAccess16CPU();
-        address &= 0x3FFFE;
+        address &= 0x3fffe;
         return this.externalRAM[address] | (this.externalRAM[address + 1] << 8);
-    }
+    };
     GameBoyAdvanceMemory.prototype.readExternalWRAM32 = function (address) {
         //External WRAM:
         this.wait.WRAMAccess32();
-        address &= 0x3FFFC;
-        return this.externalRAM[address] | (this.externalRAM[address + 1] << 8) | (this.externalRAM[address + 2] << 16) | (this.externalRAM[address + 3] << 24);
-    }
+        address &= 0x3fffc;
+        return (
+            this.externalRAM[address] |
+            (this.externalRAM[address + 1] << 8) |
+            (this.externalRAM[address + 2] << 16) |
+            (this.externalRAM[address + 3] << 24)
+        );
+    };
     GameBoyAdvanceMemory.prototype.readExternalWRAM32CPU = function (address) {
         //External WRAM:
         this.wait.WRAMAccess32CPU();
-        address &= 0x3FFFC;
-        return this.externalRAM[address] | (this.externalRAM[address + 1] << 8) | (this.externalRAM[address + 2] << 16) | (this.externalRAM[address + 3] << 24);
-    }
+        address &= 0x3fffc;
+        return (
+            this.externalRAM[address] |
+            (this.externalRAM[address + 1] << 8) |
+            (this.externalRAM[address + 2] << 16) |
+            (this.externalRAM[address + 3] << 24)
+        );
+    };
 }
 GameBoyAdvanceMemory.prototype.readInternalWRAM8 = function (address) {
     address = address | 0;
     //Internal WRAM:
     this.wait.singleClock();
-    return this.internalRAM[address & 0x7FFF] | 0;
-}
+    return this.internalRAM[address & 0x7fff] | 0;
+};
 if (__LITTLE_ENDIAN__) {
     GameBoyAdvanceMemory.prototype.readInternalWRAM16 = function (address) {
         address = address | 0;
         //Internal WRAM:
         this.wait.singleClock();
-        return this.internalRAM16[(address >> 1) & 0x3FFF] | 0;
-    }
+        return this.internalRAM16[(address >> 1) & 0x3fff] | 0;
+    };
     GameBoyAdvanceMemory.prototype.readInternalWRAM16CPU = function (address) {
         address = address | 0;
         //Internal WRAM:
         this.IOCore.updateCoreSingle();
-        return this.internalRAM16[(address >> 1) & 0x3FFF] | 0;
-    }
+        return this.internalRAM16[(address >> 1) & 0x3fff] | 0;
+    };
     GameBoyAdvanceMemory.prototype.readInternalWRAM32 = function (address) {
         address = address | 0;
         //Internal WRAM:
         this.wait.singleClock();
-        return this.internalRAM32[(address >> 2) & 0x1FFF] | 0;
-    }
+        return this.internalRAM32[(address >> 2) & 0x1fff] | 0;
+    };
     GameBoyAdvanceMemory.prototype.readInternalWRAM32CPU = function (address) {
         address = address | 0;
         //Internal WRAM:
         this.IOCore.updateCoreSingle();
-        return this.internalRAM32[(address >> 2) & 0x1FFF] | 0;
-    }
-}
-else {
+        return this.internalRAM32[(address >> 2) & 0x1fff] | 0;
+    };
+} else {
     GameBoyAdvanceMemory.prototype.readInternalWRAM16 = function (address) {
         //Internal WRAM:
         this.wait.singleClock();
-        address &= 0x7FFE;
+        address &= 0x7ffe;
         return this.internalRAM[address] | (this.internalRAM[address + 1] << 8);
-    }
+    };
     GameBoyAdvanceMemory.prototype.readInternalWRAM16CPU = function (address) {
         //Internal WRAM:
         this.IOCore.updateCoreSingle();
-        address &= 0x7FFE;
+        address &= 0x7ffe;
         return this.internalRAM[address] | (this.internalRAM[address + 1] << 8);
-    }
+    };
     GameBoyAdvanceMemory.prototype.readInternalWRAM32 = function (address) {
         //Internal WRAM:
         this.wait.singleClock();
-        address &= 0x7FFC;
-        return this.internalRAM[address] | (this.internalRAM[address + 1] << 8) | (this.internalRAM[address + 2] << 16) | (this.internalRAM[address + 3] << 24);
-    }
+        address &= 0x7ffc;
+        return (
+            this.internalRAM[address] |
+            (this.internalRAM[address + 1] << 8) |
+            (this.internalRAM[address + 2] << 16) |
+            (this.internalRAM[address + 3] << 24)
+        );
+    };
     GameBoyAdvanceMemory.prototype.readInternalWRAM32CPU = function (address) {
         //Internal WRAM:
         this.IOCore.updateCoreSingle();
-        address &= 0x7FFC;
-        return this.internalRAM[address] | (this.internalRAM[address + 1] << 8) | (this.internalRAM[address + 2] << 16) | (this.internalRAM[address + 3] << 24);
-    }
+        address &= 0x7ffc;
+        return (
+            this.internalRAM[address] |
+            (this.internalRAM[address + 1] << 8) |
+            (this.internalRAM[address + 2] << 16) |
+            (this.internalRAM[address + 3] << 24)
+        );
+    };
 }
 GameBoyAdvanceMemory.prototype.readIODispatch8 = function (address) {
     address = address | 0;
@@ -2614,27 +2607,27 @@ GameBoyAdvanceMemory.prototype.readIODispatch8 = function (address) {
             data = this.gfxRenderer.readBG0CNT8_1() | 0;
             break;
         //400000Ah - BG1CNT - BG1 Control (R/W) (BG Modes 0,1 only)
-        case 0x400000A:
+        case 0x400000a:
             data = this.gfxRenderer.readBG1CNT8_0() | 0;
             break;
         //400000Bh - BG1CNT - BG1 Control (R/W) (BG Modes 0,1 only)
-        case 0x400000B:
+        case 0x400000b:
             data = this.gfxRenderer.readBG1CNT8_1() | 0;
             break;
         //400000Ch - BG2CNT - BG2 Control (R/W) (BG Modes 0,1,2 only)
-        case 0x400000C:
+        case 0x400000c:
             data = this.gfxRenderer.readBG2CNT8_0() | 0;
             break;
         //400000Dh - BG2CNT - BG2 Control (R/W) (BG Modes 0,1,2 only)
-        case 0x400000D:
+        case 0x400000d:
             data = this.gfxRenderer.readBG2CNT8_1() | 0;
             break;
         //400000Eh - BG3CNT - BG3 Control (R/W) (BG Modes 0,2 only)
-        case 0x400000E:
+        case 0x400000e:
             data = this.gfxRenderer.readBG3CNT8_0() | 0;
             break;
         //400000Fh - BG3CNT - BG3 Control (R/W) (BG Modes 0,2 only)
-        case 0x400000F:
+        case 0x400000f:
             data = this.gfxRenderer.readBG3CNT8_1() | 0;
             break;
         //4000010h through 4000047h - WRITE ONLY
@@ -2647,11 +2640,11 @@ GameBoyAdvanceMemory.prototype.readIODispatch8 = function (address) {
             data = this.gfxRenderer.readWIN1IN8() | 0;
             break;
         //400004Ah- WINOUT - Control of Outside of Windows & Inside of OBJ Window (R/W)
-        case 0x400004A:
+        case 0x400004a:
             data = this.gfxRenderer.readWINOUT8() | 0;
             break;
         //400004AB- WINOUT - Control of Outside of Windows & Inside of OBJ Window (R/W)
-        case 0x400004B:
+        case 0x400004b:
             data = this.gfxRenderer.readWINOBJIN8() | 0;
             break;
         //4000050h - BLDCNT - Color Special Effects Selection (R/W)
@@ -2702,7 +2695,7 @@ GameBoyAdvanceMemory.prototype.readIODispatch8 = function (address) {
             data = this.sound.readSOUND2CNTL8_1() | 0;
             break;
         //400006Dh - SOUND2CNT_H (NR23, NR24) - Channel 2 Frequency/Control (R/W)
-        case 0x400006D:
+        case 0x400006d:
             //NR24:
             data = this.sound.readSOUND2CNTH8() | 0;
             break;
@@ -2724,15 +2717,15 @@ GameBoyAdvanceMemory.prototype.readIODispatch8 = function (address) {
         //4000079h - SOUND4CNT_L (NR41, NR42) - Channel 4 Length/Envelope (R/W)
         case 0x4000079:
             //NR42:
-           data = this.sound.readSOUND4CNTL8() | 0;
+            data = this.sound.readSOUND4CNTL8() | 0;
             break;
         //400007Ch - SOUND4CNT_H (NR43, NR44) - Channel 4 Frequency/Control (R/W)
-        case 0x400007C:
+        case 0x400007c:
             //NR43:
             data = this.sound.readSOUND4CNTH8_0() | 0;
             break;
         //400007Dh - SOUND4CNT_H (NR43, NR44) - Channel 4 Frequency/Control (R/W)
-        case 0x400007D:
+        case 0x400007d:
             //NR44:
             data = this.sound.readSOUND4CNTH8_1() | 0;
             break;
@@ -2791,53 +2784,53 @@ GameBoyAdvanceMemory.prototype.readIODispatch8 = function (address) {
         //4000099h - WAVE_RAM2_L - Channel 3 Wave Pattern RAM (W/R)
         case 0x4000099:
         //400009Ah - WAVE_RAM2_H - Channel 3 Wave Pattern RAM (W/R)
-        case 0x400009A:
+        case 0x400009a:
         //400009Bh - WAVE_RAM2_H - Channel 3 Wave Pattern RAM (W/R)
-        case 0x400009B:
+        case 0x400009b:
         //400009Ch - WAVE_RAM3_L - Channel 3 Wave Pattern RAM (W/R)
-        case 0x400009C:
+        case 0x400009c:
         //400009Dh - WAVE_RAM3_L - Channel 3 Wave Pattern RAM (W/R)
-        case 0x400009D:
+        case 0x400009d:
         //400009Eh - WAVE_RAM3_H - Channel 3 Wave Pattern RAM (W/R)
-        case 0x400009E:
+        case 0x400009e:
         //400009Fh - WAVE_RAM3_H - Channel 3 Wave Pattern RAM (W/R)
-        case 0x400009F:
-            data = this.sound.readWAVE8(address & 0xF) | 0;
+        case 0x400009f:
+            data = this.sound.readWAVE8(address & 0xf) | 0;
             break;
         //40000A0h through 40000B9h - WRITE ONLY
         //40000BAh - DMA0CNT_H - DMA 0 Control (R/W)
-        case 0x40000BA:
+        case 0x40000ba:
             data = this.dmaChannel0.readDMAControl8_0() | 0;
             break;
         //40000BBh - DMA0CNT_H - DMA 0 Control (R/W)
-        case 0x40000BB:
+        case 0x40000bb:
             data = this.dmaChannel0.readDMAControl8_1() | 0;
             break;
         //40000BCh through 40000C5h - WRITE ONLY
         //40000C6h - DMA1CNT_H - DMA 1 Control (R/W)
-        case 0x40000C6:
+        case 0x40000c6:
             data = this.dmaChannel1.readDMAControl8_0() | 0;
             break;
         //40000C7h - DMA1CNT_H - DMA 1 Control (R/W)
-        case 0x40000C7:
+        case 0x40000c7:
             data = this.dmaChannel1.readDMAControl8_1() | 0;
             break;
         //40000C8h through 40000D1h - WRITE ONLY
         //40000D2h - DMA2CNT_H - DMA 2 Control (R/W)
-        case 0x40000D2:
+        case 0x40000d2:
             data = this.dmaChannel2.readDMAControl8_0() | 0;
             break;
         //40000D3h - DMA2CNT_H - DMA 2 Control (R/W)
-        case 0x40000D3:
+        case 0x40000d3:
             data = this.dmaChannel2.readDMAControl8_1() | 0;
             break;
         //40000D4h through 40000DDh - WRITE ONLY
         //40000DEh - DMA3CNT_H - DMA 3 Control (R/W)
-        case 0x40000DE:
+        case 0x40000de:
             data = this.dmaChannel3.readDMAControl8_0() | 0;
             break;
         //40000DFh - DMA3CNT_H - DMA 3 Control (R/W)
-        case 0x40000DF:
+        case 0x40000df:
             data = this.dmaChannel3.readDMAControl8_1() | 0;
             break;
         //40000E0h through 40000FFh - NOT USED - GLITCHED
@@ -2874,19 +2867,19 @@ GameBoyAdvanceMemory.prototype.readIODispatch8 = function (address) {
             data = this.timer.readTM2CNT8_1() | 0;
             break;
         //400010Ah - TM2CNT_H - Timer 2 Control (R/W)
-        case 0x400010A:
+        case 0x400010a:
             data = this.timer.readTM2CNT8_2() | 0;
             break;
         //400010Ch - TM3CNT_L - Timer 3 Counter/Reload (R/W)
-        case 0x400010C:
+        case 0x400010c:
             data = this.timer.readTM3CNT8_0() | 0;
             break;
         //400010Dh - TM3CNT_L - Timer 3 Counter/Reload (R/W)
-        case 0x400010D:
+        case 0x400010d:
             data = this.timer.readTM3CNT8_1() | 0;
             break;
         //400010Eh - TM3CNT_H - Timer 3 Control (R/W)
-        case 0x400010E:
+        case 0x400010e:
             data = this.timer.readTM3CNT8_2() | 0;
             break;
         //4000110h through 400011Fh - NOT USED - GLITCHED
@@ -2941,12 +2934,12 @@ GameBoyAdvanceMemory.prototype.readIODispatch8 = function (address) {
             data = this.serial.readSIOCNT1() | 0;
             break;
         //400012Ah - SIOMLT_SEND - Data Send Register (R/W)
-        case 0x400012A:
+        case 0x400012a:
             this.IOCore.updateSerialClocking();
             data = this.serial.readSIODATA8_0() | 0;
             break;
         //400012Bh - SIOMLT_SEND - Data Send Register (R/W)
-        case 0x400012B:
+        case 0x400012b:
             this.IOCore.updateSerialClocking();
             data = this.serial.readSIODATA8_1() | 0;
             break;
@@ -3067,137 +3060,136 @@ GameBoyAdvanceMemory.prototype.readIODispatch8 = function (address) {
             data = this.readIO8LessCalled(address | 0) | 0;
     }
     return data | 0;
-}
+};
 GameBoyAdvanceMemory.prototype.readIO8LessCalled = function (address) {
     address = address | 0;
     var data = 0;
     switch (address | 0) {
-            //4000003h - Undocumented - Green Swap (R/W)
+        //4000003h - Undocumented - Green Swap (R/W)
         case 0x4000003:
-            //4000007h - VCOUNT - Vertical Counter (Read only)
+        //4000007h - VCOUNT - Vertical Counter (Read only)
         case 0x4000007:
-            //400004Ch - MOSAIC - Mosaic Size (W)
-        case 0x400004C:
-            //400004Dh - MOSAIC - Mosaic Size (W)
-        case 0x400004D:
-            //400004Eh - NOT USED - ZERO
-        case 0x400004E:
-            //400004Fh - NOT USED - ZERO
-        case 0x400004F:
-            //4000061h - NOT USED - ZERO
+        //400004Ch - MOSAIC - Mosaic Size (W)
+        case 0x400004c:
+        //400004Dh - MOSAIC - Mosaic Size (W)
+        case 0x400004d:
+        //400004Eh - NOT USED - ZERO
+        case 0x400004e:
+        //400004Fh - NOT USED - ZERO
+        case 0x400004f:
+        //4000061h - NOT USED - ZERO
         case 0x4000061:
-            //4000064h - SOUND1CNT_X (NR13, NR14) - Channel 1 Frequency/Control (R/W)
+        //4000064h - SOUND1CNT_X (NR13, NR14) - Channel 1 Frequency/Control (R/W)
         case 0x4000064:
-            //4000066h - NOT USED - ZERO
+        //4000066h - NOT USED - ZERO
         case 0x4000066:
-            //4000067h - NOT USED - ZERO
+        //4000067h - NOT USED - ZERO
         case 0x4000067:
-            //400006Ah - NOT USED - ZERO
-        case 0x400006A:
-            //400006Bh - NOT USED - ZERO
-        case 0x400006B:
-            //400006Ch - SOUND2CNT_H (NR23, NR24) - Channel 2 Frequency/Control (R/W)
-        case 0x400006C:
-            //400006Eh - NOT USED - ZERO
-        case 0x400006E:
-            //400006Fh - NOT USED - ZERO
-        case 0x400006F:
-            //4000071h - SOUND3CNT_L (NR30) - Channel 3 Stop/Wave RAM select (R/W)
+        //400006Ah - NOT USED - ZERO
+        case 0x400006a:
+        //400006Bh - NOT USED - ZERO
+        case 0x400006b:
+        //400006Ch - SOUND2CNT_H (NR23, NR24) - Channel 2 Frequency/Control (R/W)
+        case 0x400006c:
+        //400006Eh - NOT USED - ZERO
+        case 0x400006e:
+        //400006Fh - NOT USED - ZERO
+        case 0x400006f:
+        //4000071h - SOUND3CNT_L (NR30) - Channel 3 Stop/Wave RAM select (R/W)
         case 0x4000071:
-            //4000072h - SOUND3CNT_H (NR31, NR32) - Channel 3 Length/Volume (R/W)
+        //4000072h - SOUND3CNT_H (NR31, NR32) - Channel 3 Length/Volume (R/W)
         case 0x4000072:
-            //4000074h - SOUND3CNT_X (NR33, NR34) - Channel 3 Frequency/Control (R/W)
+        //4000074h - SOUND3CNT_X (NR33, NR34) - Channel 3 Frequency/Control (R/W)
         case 0x4000074:
-            //4000076h - NOT USED - ZERO
+        //4000076h - NOT USED - ZERO
         case 0x4000076:
-            //4000077h - NOT USED - ZERO
+        //4000077h - NOT USED - ZERO
         case 0x4000077:
-            //4000078h - SOUND4CNT_L (NR41, NR42) - Channel 4 Length/Envelope (R/W)
+        //4000078h - SOUND4CNT_L (NR41, NR42) - Channel 4 Length/Envelope (R/W)
         case 0x4000078:
-            //400007Ah - NOT USED - ZERO
-        case 0x400007A:
-            //400007Bh - NOT USED - ZERO
-        case 0x400007B:
-            //400007Eh - NOT USED - ZERO
-        case 0x400007E:
-            //400007Fh - NOT USED - ZERO
-        case 0x400007F:
-            //4000085h - NOT USED - ZERO
+        //400007Ah - NOT USED - ZERO
+        case 0x400007a:
+        //400007Bh - NOT USED - ZERO
+        case 0x400007b:
+        //400007Eh - NOT USED - ZERO
+        case 0x400007e:
+        //400007Fh - NOT USED - ZERO
+        case 0x400007f:
+        //4000085h - NOT USED - ZERO
         case 0x4000085:
-            //4000086h - NOT USED - ZERO
+        //4000086h - NOT USED - ZERO
         case 0x4000086:
-            //4000087h - NOT USED - ZERO
+        //4000087h - NOT USED - ZERO
         case 0x4000087:
-            //400008Ah - NOT USED - ZERO
-        case 0x400008A:
-            //400008Bh - NOT USED - ZERO
-        case 0x400008B:
-            //4000103h - TM0CNT_H - Timer 0 Control (R/W)
+        //400008Ah - NOT USED - ZERO
+        case 0x400008a:
+        //400008Bh - NOT USED - ZERO
+        case 0x400008b:
+        //4000103h - TM0CNT_H - Timer 0 Control (R/W)
         case 0x4000103:
-            //4000107h - TM1CNT_H - Timer 1 Control (R/W)
+        //4000107h - TM1CNT_H - Timer 1 Control (R/W)
         case 0x4000107:
-            //400010Bh - TM2CNT_H - Timer 2 Control (R/W)
-        case 0x400010B:
-            //400010Fh - TM3CNT_H - Timer 3 Control (R/W)
-        case 0x400010F:
-            //4000136h - NOT USED - ZERO
+        //400010Bh - TM2CNT_H - Timer 2 Control (R/W)
+        case 0x400010b:
+        //400010Fh - TM3CNT_H - Timer 3 Control (R/W)
+        case 0x400010f:
+        //4000136h - NOT USED - ZERO
         case 0x4000136:
-            //4000137h - NOT USED - ZERO
+        //4000137h - NOT USED - ZERO
         case 0x4000137:
-            //4000141h - JOYCNT - JOY BUS Control Register (R/W)
+        //4000141h - JOYCNT - JOY BUS Control Register (R/W)
         case 0x4000141:
-            //4000142h - NOT USED - ZERO
+        //4000142h - NOT USED - ZERO
         case 0x4000142:
-            //4000143h - NOT USED - ZERO
+        //4000143h - NOT USED - ZERO
         case 0x4000143:
-            //4000159h - JoyBus Stat (R/W)
+        //4000159h - JoyBus Stat (R/W)
         case 0x4000159:
-            //400015Ah - NOT USED - ZERO
-        case 0x400015A:
-            //400015Bh - NOT USED - ZERO
-        case 0x400015B:
-            //4000206h - NOT USED - ZERO
+        //400015Ah - NOT USED - ZERO
+        case 0x400015a:
+        //400015Bh - NOT USED - ZERO
+        case 0x400015b:
+        //4000206h - NOT USED - ZERO
         case 0x4000206:
-            //4000207h - NOT USED - ZERO
+        //4000207h - NOT USED - ZERO
         case 0x4000207:
-            //4000209h - IME - Interrupt Master Enable Register (R/W)
+        //4000209h - IME - Interrupt Master Enable Register (R/W)
         case 0x4000209:
-            //400020Ah - NOT USED - ZERO
-        case 0x400020A:
-            //400020Bh - NOT USED - ZERO
-        case 0x400020B:
-            //4000301h - HALTCNT - BYTE - Undocumented - Low Power Mode Control (W)
+        //400020Ah - NOT USED - ZERO
+        case 0x400020a:
+        //400020Bh - NOT USED - ZERO
+        case 0x400020b:
+        //4000301h - HALTCNT - BYTE - Undocumented - Low Power Mode Control (W)
         case 0x4000301:
-            //4000302h - NOT USED - ZERO
+        //4000302h - NOT USED - ZERO
         case 0x4000302:
-            //4000303h - NOT USED - ZERO
+        //4000303h - NOT USED - ZERO
         case 0x4000303:
             break;
         default:
-            if ((address & 0xFFFC) == 0x800) {
+            if ((address & 0xfffc) == 0x800) {
                 //WRAM wait state control:
                 data = this.wait.readConfigureWRAM8(address | 0) | 0;
-            }
-            else {
+            } else {
                 //Undefined Illegal I/O:
                 data = this.readUnused8CPUBase(address | 0) | 0;
             }
     }
     return data | 0;
-}
+};
 GameBoyAdvanceMemory.prototype.readIODispatch16 = function (address) {
     address = address | 0;
     var data = 0;
     this.wait.singleClock();
     var data = this.readIO16(address | 0) | 0;
     return data | 0;
-}
+};
 GameBoyAdvanceMemory.prototype.readIODispatch16CPU = function (address) {
     address = address | 0;
     this.IOCore.updateCoreSingle();
     var data = this.readIO16(address | 0) | 0;
     return data | 0;
-}
+};
 GameBoyAdvanceMemory.prototype.readIO16 = function (address) {
     address = address | 0;
     var data = 0;
@@ -3223,15 +3215,15 @@ GameBoyAdvanceMemory.prototype.readIO16 = function (address) {
             data = this.gfxRenderer.readBG0CNT16() | 0;
             break;
         //400000Ah - BG1CNT - BG1 Control (R/W) (BG Modes 0,1 only)
-        case 0x400000A:
+        case 0x400000a:
             data = this.gfxRenderer.readBG1CNT16() | 0;
             break;
         //400000Ch - BG2CNT - BG2 Control (R/W) (BG Modes 0,1,2 only)
-        case 0x400000C:
+        case 0x400000c:
             data = this.gfxRenderer.readBG2CNT16() | 0;
             break;
         //400000Eh - BG3CNT - BG3 Control (R/W) (BG Modes 0,2 only)
-        case 0x400000E:
+        case 0x400000e:
             data = this.gfxRenderer.readBG3CNT16() | 0;
             break;
         //4000010h through 4000047h - WRITE ONLY
@@ -3240,7 +3232,7 @@ GameBoyAdvanceMemory.prototype.readIO16 = function (address) {
             data = this.gfxRenderer.readWININ16() | 0;
             break;
         //400004Ah- WINOUT - Control of Outside of Windows & Inside of OBJ Window (R/W)
-        case 0x400004A:
+        case 0x400004a:
             data = this.gfxRenderer.readWINOUT16() | 0;
             break;
         //4000050h - BLDCNT - Color Special Effects Selection (R/W)
@@ -3275,7 +3267,7 @@ GameBoyAdvanceMemory.prototype.readIO16 = function (address) {
             data = this.sound.readSOUND2CNTL16() | 0;
             break;
         //400006Ch - SOUND2CNT_H (NR23, NR24) - Channel 2 Frequency/Control (R/W)
-        case 0x400006C:
+        case 0x400006c:
             //NR24:
             data = this.sound.readSOUND2CNTH16() | 0;
             break;
@@ -3300,7 +3292,7 @@ GameBoyAdvanceMemory.prototype.readIO16 = function (address) {
             data = this.sound.readSOUND4CNTL16() | 0;
             break;
         //400007Ch - SOUND4CNT_H (NR43, NR44) - Channel 4 Frequency/Control (R/W)
-        case 0x400007C:
+        case 0x400007c:
             //NR43:
             //NR44:
             data = this.sound.readSOUND4CNTH16() | 0;
@@ -3336,31 +3328,31 @@ GameBoyAdvanceMemory.prototype.readIO16 = function (address) {
         //4000098h - WAVE_RAM2_L - Channel 3 Wave Pattern RAM (W/R)
         case 0x4000098:
         //400009Ah - WAVE_RAM2_H - Channel 3 Wave Pattern RAM (W/R)
-        case 0x400009A:
+        case 0x400009a:
         //400009Ch - WAVE_RAM3_L - Channel 3 Wave Pattern RAM (W/R)
-        case 0x400009C:
+        case 0x400009c:
         //400009Eh - WAVE_RAM3_H - Channel 3 Wave Pattern RAM (W/R)
-        case 0x400009E:
-            data = this.sound.readWAVE16(address & 0xF) | 0;
+        case 0x400009e:
+            data = this.sound.readWAVE16(address & 0xf) | 0;
             break;
         //40000A0h through 40000B9h - WRITE ONLY
         //40000BAh - DMA0CNT_H - DMA 0 Control (R/W)
-        case 0x40000BA:
+        case 0x40000ba:
             data = this.dmaChannel0.readDMAControl16() | 0;
             break;
         //40000BCh through 40000C5h - WRITE ONLY
         //40000C6h - DMA1CNT_H - DMA 1 Control (R/W)
-        case 0x40000C6:
+        case 0x40000c6:
             data = this.dmaChannel1.readDMAControl16() | 0;
             break;
         //40000C8h through 40000D1h - WRITE ONLY
         //40000D2h - DMA2CNT_H - DMA 2 Control (R/W)
-        case 0x40000D2:
+        case 0x40000d2:
             data = this.dmaChannel2.readDMAControl16() | 0;
             break;
         //40000D4h through 40000DDh - WRITE ONLY
         //40000DEh - DMA3CNT_H - DMA 3 Control (R/W)
-        case 0x40000DE:
+        case 0x40000de:
             data = this.dmaChannel3.readDMAControl16() | 0;
             break;
         //40000E0h through 40000FFh - NOT USED - GLITCHED
@@ -3385,15 +3377,15 @@ GameBoyAdvanceMemory.prototype.readIO16 = function (address) {
             data = this.timer.readTM2CNT16() | 0;
             break;
         //400010Ah - TM2CNT_H - Timer 2 Control (R/W)
-        case 0x400010A:
+        case 0x400010a:
             data = this.timer.readTM2CNT8_2() | 0;
             break;
         //400010Ch - TM3CNT_L - Timer 3 Counter/Reload (R/W)
-        case 0x400010C:
+        case 0x400010c:
             data = this.timer.readTM3CNT16() | 0;
             break;
         //400010Eh - TM3CNT_H - Timer 3 Control (R/W)
-        case 0x400010E:
+        case 0x400010e:
             data = this.timer.readTM3CNT8_2() | 0;
             break;
         //4000110h through 400011Fh - NOT USED - GLITCHED
@@ -3423,7 +3415,7 @@ GameBoyAdvanceMemory.prototype.readIO16 = function (address) {
             data = this.serial.readSIOCNT0() | (this.serial.readSIOCNT1() << 8);
             break;
         //400012Ah - SIOMLT_SEND - Data Send Register (R/W)
-        case 0x400012A:
+        case 0x400012a:
             this.IOCore.updateSerialClocking();
             data = this.serial.readSIODATA8_0() | (this.serial.readSIODATA8_1() << 8);
             break;
@@ -3499,68 +3491,67 @@ GameBoyAdvanceMemory.prototype.readIO16 = function (address) {
             data = this.readIO16LessCalled(address | 0) | 0;
     }
     return data | 0;
-}
+};
 GameBoyAdvanceMemory.prototype.readIO16LessCalled = function (address) {
     address = address | 0;
     var data = 0;
     switch (address & -2) {
         //400004Ch - MOSAIC - Mosaic Size (W)
-        case 0x400004C:
+        case 0x400004c:
         //400004Eh - NOT USED - ZERO
-        case 0x400004E:
+        case 0x400004e:
         //4000066h - NOT USED - ZERO
         case 0x4000066:
         //400006Ah - NOT USED - ZERO
-        case 0x400006A:
+        case 0x400006a:
         //400006Eh - NOT USED - ZERO
-        case 0x400006E:
+        case 0x400006e:
         //4000076h - NOT USED - ZERO
         case 0x4000076:
         //400007Ah - NOT USED - ZERO
-        case 0x400007A:
+        case 0x400007a:
         //400007Eh - NOT USED - ZERO
-        case 0x400007E:
+        case 0x400007e:
         //4000086h - NOT USED - ZERO
         case 0x4000086:
         //400008Ah - NOT USED - ZERO
-        case 0x400008A:
+        case 0x400008a:
         //4000136h - NOT USED - ZERO
         case 0x4000136:
         //4000142h - NOT USED - ZERO
         case 0x4000142:
         //400015Ah - NOT USED - ZERO
-        case 0x400015A:
+        case 0x400015a:
         //4000206h - NOT USED - ZERO
         case 0x4000206:
         //400020Ah - NOT USED - ZERO
-        case 0x400020A:
+        case 0x400020a:
         //4000302h - NOT USED - ZERO
         case 0x4000302:
             break;
         default:
-            if ((address & 0xFFFC) == 0x800) {
+            if ((address & 0xfffc) == 0x800) {
                 //WRAM wait state control:
                 data = this.wait.readConfigureWRAM16(address | 0) | 0;
-            }
-            else {
+            } else {
                 //Undefined Illegal I/O:
                 data = this.readUnused16MultiBase(address | 0) | 0;
             }
     }
     return data | 0;
-}
+};
 GameBoyAdvanceMemory.prototype.readIODispatch32 = function (address) {
     address = address | 0;
     this.wait.singleClock();
     var data = this.readIO32(address | 0) | 0;
     return data | 0;
-}
+};
 GameBoyAdvanceMemory.prototype.readIODispatch32CPU = function (address) {
     address = address | 0;
     this.IOCore.updateCoreSingle();
     var data = this.readIO32(address | 0) | 0;
     return data | 0;
-}
+};
 GameBoyAdvanceMemory.prototype.readIO32 = function (address) {
     address = address | 0;
     var data = 0;
@@ -3582,7 +3573,7 @@ GameBoyAdvanceMemory.prototype.readIO32 = function (address) {
             break;
         //400000Ch - BG2CNT - BG2 Control (R/W) (BG Modes 0,1,2 only)
         //400000Eh - BG3CNT - BG3 Control (R/W) (BG Modes 0,2 only)
-        case 0x400000C:
+        case 0x400000c:
             data = this.gfxRenderer.readBG2BG3CNT32() | 0;
             break;
         //4000010h through 4000047h - WRITE ONLY
@@ -3621,7 +3612,7 @@ GameBoyAdvanceMemory.prototype.readIO32 = function (address) {
             break;
         //400006Ch - SOUND2CNT_H (NR23, NR24) - Channel 2 Frequency/Control (R/W)
         //400006Eh - NOT USED - ZERO
-        case 0x400006C:
+        case 0x400006c:
             //NR24:
             data = this.sound.readSOUND2CNTH16() | 0;
             break;
@@ -3646,7 +3637,7 @@ GameBoyAdvanceMemory.prototype.readIO32 = function (address) {
             break;
         //400007Ch - SOUND4CNT_H (NR43, NR44) - Channel 4 Frequency/Control (R/W)
         //400007Eh - NOT USED - ZERO
-        case 0x400007C:
+        case 0x400007c:
             //NR43:
             //NR44:
             data = this.sound.readSOUND4CNTH16() | 0;
@@ -3681,27 +3672,27 @@ GameBoyAdvanceMemory.prototype.readIO32 = function (address) {
         case 0x4000098:
         //400009Ch - WAVE_RAM3_L - Channel 3 Wave Pattern RAM (W/R)
         //400009Eh - WAVE_RAM3_H - Channel 3 Wave Pattern RAM (W/R)
-        case 0x400009C:
-            data = this.sound.readWAVE32(address & 0xF) | 0;
+        case 0x400009c:
+            data = this.sound.readWAVE32(address & 0xf) | 0;
             break;
         //40000A0h through 40000B9h - WRITE ONLY
         //40000BAh - DMA0CNT_H - DMA 0 Control (R/W)
-        case 0x40000B8:
+        case 0x40000b8:
             data = this.dmaChannel0.readDMAControl16() << 16;
             break;
         //40000BCh through 40000C5h - WRITE ONLY
         //40000C6h - DMA1CNT_H - DMA 1 Control (R/W)
-        case 0x40000C4:
+        case 0x40000c4:
             data = this.dmaChannel1.readDMAControl16() << 16;
             break;
         //40000C8h through 40000D1h - WRITE ONLY
         //40000D2h - DMA2CNT_H - DMA 2 Control (R/W)
-        case 0x40000D0:
+        case 0x40000d0:
             data = this.dmaChannel2.readDMAControl16() << 16;
             break;
         //40000D4h through 40000DDh - WRITE ONLY
         //40000DEh - DMA3CNT_H - DMA 3 Control (R/W)
-        case 0x40000DC:
+        case 0x40000dc:
             data = this.dmaChannel3.readDMAControl16() << 16;
             break;
         //40000E0h through 40000FFh - NOT USED - GLITCHED
@@ -3722,7 +3713,7 @@ GameBoyAdvanceMemory.prototype.readIO32 = function (address) {
             break;
         //400010Ch - TM3CNT_L - Timer 3 Counter/Reload (R/W)
         //400010Eh - TM3CNT_H - Timer 3 Control (R/W)
-        case 0x400010C:
+        case 0x400010c:
             data = this.timer.readTM3CNT32() | 0;
             break;
         //4000110h through 400011Fh - NOT USED - GLITCHED
@@ -3730,28 +3721,31 @@ GameBoyAdvanceMemory.prototype.readIO32 = function (address) {
         //4000122h - Serial Data B (R/W)
         case 0x4000110:
             this.IOCore.updateSerialClocking();
-            data = this.serial.readSIODATA_A0() |
-            (this.serial.readSIODATA_A1() << 8) |
-            (this.serial.readSIODATA_B0() << 16) |
-            (this.serial.readSIODATA_B1() << 24);
+            data =
+                this.serial.readSIODATA_A0() |
+                (this.serial.readSIODATA_A1() << 8) |
+                (this.serial.readSIODATA_B0() << 16) |
+                (this.serial.readSIODATA_B1() << 24);
             break;
         //4000124h - Serial Data C (R/W)
         //4000126h - Serial Data D (R/W)
         case 0x4000124:
             this.IOCore.updateSerialClocking();
-            data = this.serial.readSIODATA_C0() |
-            (this.serial.readSIODATA_C1() << 8) |
-            (this.serial.readSIODATA_D0() << 16) |
-            (this.serial.readSIODATA_D1() << 24);
+            data =
+                this.serial.readSIODATA_C0() |
+                (this.serial.readSIODATA_C1() << 8) |
+                (this.serial.readSIODATA_D0() << 16) |
+                (this.serial.readSIODATA_D1() << 24);
             break;
         //4000128h - SIOCNT - SIO Sub Mode Control (R/W)
         //400012Ah - SIOMLT_SEND - Data Send Register (R/W)
         case 0x4000128:
             this.IOCore.updateSerialClocking();
-            data = this.serial.readSIOCNT0() |
-            (this.serial.readSIOCNT1() << 8) |
-            (this.serial.readSIODATA8_0() << 16) |
-            (this.serial.readSIODATA8_1() << 24);
+            data =
+                this.serial.readSIOCNT0() |
+                (this.serial.readSIOCNT1() << 8) |
+                (this.serial.readSIODATA8_0() << 16) |
+                (this.serial.readSIODATA8_1() << 24);
             break;
         //400012Ch through 400012Fh - NOT USED - GLITCHED
         //4000130h - KEYINPUT - Key Status (R)
@@ -3777,19 +3771,21 @@ GameBoyAdvanceMemory.prototype.readIO32 = function (address) {
         //4000152h - JoyBus Receive (R/W)
         case 0x4000144:
             this.IOCore.updateSerialClocking();
-            data = this.serial.readJOYBUS_RECV0() |
-            (this.serial.readJOYBUS_RECV1() << 8) |
-            (this.serial.readJOYBUS_RECV2() << 16) |
-            (this.serial.readJOYBUS_RECV3() << 24);
+            data =
+                this.serial.readJOYBUS_RECV0() |
+                (this.serial.readJOYBUS_RECV1() << 8) |
+                (this.serial.readJOYBUS_RECV2() << 16) |
+                (this.serial.readJOYBUS_RECV3() << 24);
             break;
         //4000154h - JoyBus Send (R/W)
         //4000156h - JoyBus Send (R/W)
         case 0x4000154:
             this.IOCore.updateSerialClocking();
-            data = this.serial.readJOYBUS_SEND0() |
-            (this.serial.readJOYBUS_SEND1() << 8) |
-            (this.serial.readJOYBUS_SEND2() << 16) |
-            (this.serial.readJOYBUS_SEND3() << 24);
+            data =
+                this.serial.readJOYBUS_SEND0() |
+                (this.serial.readJOYBUS_SEND1() << 8) |
+                (this.serial.readJOYBUS_SEND2() << 16) |
+                (this.serial.readJOYBUS_SEND3() << 24);
             break;
         //4000158h - JoyBus Stat (R/W)
         //400015Ah - NOT USED - ZERO
@@ -3821,17 +3817,16 @@ GameBoyAdvanceMemory.prototype.readIO32 = function (address) {
             break;
         //UNDEFINED / ILLEGAL:
         default:
-            if ((address & 0xFFFC) == 0x800) {
+            if ((address & 0xfffc) == 0x800) {
                 //WRAM wait state control:
                 data = this.wait.readConfigureWRAM32() | 0;
-            }
-            else {
+            } else {
                 //Undefined Illegal I/O:
                 data = this.readUnused32MultiBase() | 0;
             }
     }
     return data | 0;
-}
+};
 GameBoyAdvanceMemory.prototype.readVRAM8Preliminary = function (address) {
     address = address | 0;
     this.IOCore.updateGraphicsClocking();
@@ -3850,7 +3845,7 @@ GameBoyAdvanceMemory.prototype.readVRAM8Preliminary = function (address) {
             data = this.gfxRenderer.readOAM(address | 0) | 0;
     }
     return data | 0;
-}
+};
 GameBoyAdvanceMemory.prototype.readVRAM16Preliminary = function (address) {
     address = address | 0;
     this.IOCore.updateGraphicsClocking();
@@ -3869,7 +3864,7 @@ GameBoyAdvanceMemory.prototype.readVRAM16Preliminary = function (address) {
             data = this.gfxRenderer.readOAM16(address | 0) | 0;
     }
     return data | 0;
-}
+};
 GameBoyAdvanceMemory.prototype.readVRAM16CPUPreliminary = function (address) {
     address = address | 0;
     this.IOCore.updateGraphicsClocking();
@@ -3888,7 +3883,7 @@ GameBoyAdvanceMemory.prototype.readVRAM16CPUPreliminary = function (address) {
             data = this.gfxRenderer.readOAM16(address | 0) | 0;
     }
     return data | 0;
-}
+};
 GameBoyAdvanceMemory.prototype.readVRAM32Preliminary = function (address) {
     address = address | 0;
     this.IOCore.updateGraphicsClocking();
@@ -3907,7 +3902,7 @@ GameBoyAdvanceMemory.prototype.readVRAM32Preliminary = function (address) {
             data = this.gfxRenderer.readOAM32(address | 0) | 0;
     }
     return data | 0;
-}
+};
 GameBoyAdvanceMemory.prototype.readVRAM32CPUPreliminary = function (address) {
     address = address | 0;
     this.IOCore.updateGraphicsClocking();
@@ -3926,181 +3921,188 @@ GameBoyAdvanceMemory.prototype.readVRAM32CPUPreliminary = function (address) {
             data = this.gfxRenderer.readOAM32(address | 0) | 0;
     }
     return data | 0;
-}
+};
 GameBoyAdvanceMemory.prototype.readROM8 = function (address) {
     address = address | 0;
     this.wait.ROMAccess(address | 0);
-    return this.cartridge.readROM8(address & 0x1FFFFFF) | 0;
-}
+    return this.cartridge.readROM8(address & 0x1ffffff) | 0;
+};
 GameBoyAdvanceMemory.prototype.readROM16 = function (address) {
     address = address | 0;
     this.wait.ROMAccess(address | 0);
-    return this.cartridge.readROM16(address & 0x1FFFFFE) | 0;
-}
+    return this.cartridge.readROM16(address & 0x1fffffe) | 0;
+};
 GameBoyAdvanceMemory.prototype.readROM16CPU = function (address) {
     address = address | 0;
     this.wait.ROMAccess16CPU(address | 0);
-    return this.cartridge.readROM16(address & 0x1FFFFFE) | 0;
-}
+    return this.cartridge.readROM16(address & 0x1fffffe) | 0;
+};
 GameBoyAdvanceMemory.prototype.readROM32 = function (address) {
     address = address | 0;
     this.wait.ROMAccess32(address | 0);
-    return this.cartridge.readROM32(address & 0x1FFFFFC) | 0;
-}
+    return this.cartridge.readROM32(address & 0x1fffffc) | 0;
+};
 GameBoyAdvanceMemory.prototype.readROM32CPU = function (address) {
     address = address | 0;
     this.wait.ROMAccess32CPU(address | 0);
-    return this.cartridge.readROM32(address & 0x1FFFFFC) | 0;
-}
+    return this.cartridge.readROM32(address & 0x1fffffc) | 0;
+};
 GameBoyAdvanceMemory.prototype.readROM28 = function (address) {
     address = address | 0;
     this.wait.ROMAccess(address | 0);
-    return this.cartridge.readROM8Space2(address & 0x1FFFFFF) | 0;
-}
+    return this.cartridge.readROM8Space2(address & 0x1ffffff) | 0;
+};
 GameBoyAdvanceMemory.prototype.readROM216 = function (address) {
     address = address | 0;
     this.wait.ROMAccess(address | 0);
-    return this.cartridge.readROM16Space2(address & 0x1FFFFFE) | 0;
-}
+    return this.cartridge.readROM16Space2(address & 0x1fffffe) | 0;
+};
 GameBoyAdvanceMemory.prototype.readROM216CPU = function (address) {
     address = address | 0;
     this.wait.ROMAccess16CPU(address | 0);
-    return this.cartridge.readROM16Space2(address & 0x1FFFFFE) | 0;
-}
+    return this.cartridge.readROM16Space2(address & 0x1fffffe) | 0;
+};
 GameBoyAdvanceMemory.prototype.readROM232 = function (address) {
     address = address | 0;
     this.wait.ROMAccess32(address | 0);
-    return this.cartridge.readROM32Space2(address & 0x1FFFFFC) | 0;
-}
+    return this.cartridge.readROM32Space2(address & 0x1fffffc) | 0;
+};
 GameBoyAdvanceMemory.prototype.readROM232CPU = function (address) {
     address = address | 0;
     this.wait.ROMAccess32CPU(address | 0);
-    return this.cartridge.readROM32Space2(address & 0x1FFFFFC) | 0;
-}
+    return this.cartridge.readROM32Space2(address & 0x1fffffc) | 0;
+};
 GameBoyAdvanceMemory.prototype.readSRAM8 = function (address) {
     address = address | 0;
     this.wait.SRAMAccess();
-    return this.saves.readSRAM(address & 0xFFFF) | 0;
-}
-if (typeof Math.imul == "function") {
+    return this.saves.readSRAM(address & 0xffff) | 0;
+};
+if (typeof Math.imul == 'function') {
     //Math.imul found, insert the optimized path in:
     GameBoyAdvanceMemory.prototype.readSRAM16 = function (address) {
         address = address | 0;
         this.wait.SRAMAccess();
-        return Math.imul(this.saves.readSRAM(address & 0xFFFE) | 0, 0x101) | 0;
-    }
+        return Math.imul(this.saves.readSRAM(address & 0xfffe) | 0, 0x101) | 0;
+    };
     GameBoyAdvanceMemory.prototype.readSRAM16CPU = function (address) {
         address = address | 0;
         this.wait.SRAMAccessCPU();
-        return Math.imul(this.saves.readSRAM(address & 0xFFFE) | 0, 0x101) | 0;
-    }
+        return Math.imul(this.saves.readSRAM(address & 0xfffe) | 0, 0x101) | 0;
+    };
     GameBoyAdvanceMemory.prototype.readSRAM32 = function (address) {
         address = address | 0;
         this.wait.SRAMAccess();
-        return Math.imul(this.saves.readSRAM(address & 0xFFFC) | 0, 0x1010101) | 0;
-    }
+        return Math.imul(this.saves.readSRAM(address & 0xfffc) | 0, 0x1010101) | 0;
+    };
     GameBoyAdvanceMemory.prototype.readSRAM32CPU = function (address) {
         address = address | 0;
         this.wait.SRAMAccessCPU();
-        return Math.imul(this.saves.readSRAM(address & 0xFFFC) | 0, 0x1010101) | 0;
-    }
-}
-else {
+        return Math.imul(this.saves.readSRAM(address & 0xfffc) | 0, 0x1010101) | 0;
+    };
+} else {
     //Math.imul not found, use the compatibility method:
     GameBoyAdvanceMemory.prototype.readSRAM16 = function (address) {
         address = address | 0;
         this.wait.SRAMAccess();
-        return ((this.saves.readSRAM(address & 0xFFFE) | 0) * 0x101) | 0;
-    }
+        return ((this.saves.readSRAM(address & 0xfffe) | 0) * 0x101) | 0;
+    };
     GameBoyAdvanceMemory.prototype.readSRAM16CPU = function (address) {
         address = address | 0;
         this.wait.SRAMAccessCPU();
-        return ((this.saves.readSRAM(address & 0xFFFE) | 0) * 0x101) | 0;
-    }
+        return ((this.saves.readSRAM(address & 0xfffe) | 0) * 0x101) | 0;
+    };
     GameBoyAdvanceMemory.prototype.readSRAM32 = function (address) {
         address = address | 0;
         this.wait.SRAMAccess();
-        return ((this.saves.readSRAM(address & 0xFFFC) | 0) * 0x1010101) | 0;
-    }
+        return ((this.saves.readSRAM(address & 0xfffc) | 0) * 0x1010101) | 0;
+    };
     GameBoyAdvanceMemory.prototype.readSRAM32CPU = function (address) {
         address = address | 0;
         this.wait.SRAMAccessCPU();
-        return ((this.saves.readSRAM(address & 0xFFFC) | 0) * 0x1010101) | 0;
-    }
+        return ((this.saves.readSRAM(address & 0xfffc) | 0) * 0x1010101) | 0;
+    };
 }
 GameBoyAdvanceMemory.prototype.readUnused8 = function (address) {
     address = address | 0;
     this.wait.singleClock();
     return this.readUnused8CPUBase(address | 0) | 0;
-}
+};
 GameBoyAdvanceMemory.prototype.readUnused8CPUBase = function (address) {
     address = address | 0;
-    return (this.cpu.getCurrentFetchValue() >> ((address & 0x3) << 3)) & 0xFF;
-}
+    return (this.cpu.getCurrentFetchValue() >> ((address & 0x3) << 3)) & 0xff;
+};
 GameBoyAdvanceMemory.prototype.readUnused16 = function (address) {
     address = address | 0;
     this.wait.singleClock();
     return this.readUnused16CPUBase(address | 0) | 0;
-}
+};
 GameBoyAdvanceMemory.prototype.readUnused16CPU = function (address) {
     address = address | 0;
     this.IOCore.updateCoreSingle();
     return this.readUnused16CPUBase(address | 0) | 0;
-}
+};
 GameBoyAdvanceMemory.prototype.readUnused16CPUBase = function (address) {
     address = address | 0;
-    return (this.cpu.getCurrentFetchValue() >> ((address & 0x2) << 3)) & 0xFFFF;
-}
+    return (this.cpu.getCurrentFetchValue() >> ((address & 0x2) << 3)) & 0xffff;
+};
 GameBoyAdvanceMemory.prototype.readUnused16DMA = function (address) {
     address = address | 0;
     this.wait.singleClock();
     return this.readUnused16DMABase(address | 0) | 0;
-}
+};
 GameBoyAdvanceMemory.prototype.readUnused16DMABase = function (address) {
     address = address | 0;
-    return (this.dma.getCurrentFetchValue() >> ((address & 0x2) << 3)) & 0xFFFF;
-}
+    return (this.dma.getCurrentFetchValue() >> ((address & 0x2) << 3)) & 0xffff;
+};
 GameBoyAdvanceMemory.prototype.readUnused16MultiBase = function (address) {
     address = address | 0;
-    return (this.readUnused32MultiBase() >> ((address & 0x2) << 3)) & 0xFFFF;
-}
+    return (this.readUnused32MultiBase() >> ((address & 0x2) << 3)) & 0xffff;
+};
 GameBoyAdvanceMemory.prototype.readUnused32 = function () {
     this.wait.singleClock();
     return this.cpu.getCurrentFetchValue() | 0;
-}
+};
 GameBoyAdvanceMemory.prototype.readUnused32CPU = function () {
     this.IOCore.updateCoreSingle();
     return this.cpu.getCurrentFetchValue() | 0;
-}
+};
 GameBoyAdvanceMemory.prototype.readUnused32DMA = function () {
     this.wait.singleClock();
     return this.dma.getCurrentFetchValue() | 0;
-}
+};
 GameBoyAdvanceMemory.prototype.readUnused32MultiBase = function () {
     return this.IOCore.getCurrentFetchValue() | 0;
-}
+};
 GameBoyAdvanceMemory.prototype.loadBIOS = function () {
     var allowInit = 1;
     //Ensure BIOS is of correct length:
     if ((this.IOCore.BIOS.length | 0) == 0x4000) {
         //this.IOCore.BIOSFound = true;
         for (var index = 0; (index | 0) < 0x4000; index = ((index | 0) + 1) | 0) {
-            this.BIOS[index & 0x3FFF] = this.IOCore.BIOS[index & 0x3FFF] & 0xFF;
+            this.BIOS[index & 0x3fff] = this.IOCore.BIOS[index & 0x3fff] & 0xff;
         }
-    }
-    else {
+    } else {
         //this.IOCore.BIOSFound = false;
         this.IOCore.SKIPBoot = true;
         //Kill init, rather than allow HLE for now:
         allowInit = 0;
     }
     return allowInit | 0;
-}
+};
 function generateMemoryTopLevelDispatch() {
     //Generic memory read dispatch generator:
-    function compileMemoryReadDispatch(readUnused, readExternalWRAM, readInternalWRAM,
-                                       readIODispatch, readVRAM, readROM, readROM2, readSRAM, readBIOS) {
-        var code = "address = address | 0;var data = 0;switch (address >> 24) {";
+    function compileMemoryReadDispatch(
+        readUnused,
+        readExternalWRAM,
+        readInternalWRAM,
+        readIODispatch,
+        readVRAM,
+        readROM,
+        readROM2,
+        readSRAM,
+        readBIOS
+    ) {
+        var code = 'address = address | 0;var data = 0;switch (address >> 24) {';
         /*
          Decoder for the nibble at bits 24-27
          (Top 4 bits of the address falls through to default (unused),
@@ -4110,7 +4112,7 @@ function generateMemoryTopLevelDispatch() {
          BIOS Area (00000000-00003FFF)
          Unused (00004000-01FFFFFF)
          */
-        code += "case 0:{data = this." + readBIOS + "(address | 0) | 0;break};";
+        code += 'case 0:{data = this.' + readBIOS + '(address | 0) | 0;break};';
         /*
          Unused (00004000-01FFFFFF)
          */
@@ -4118,84 +4120,83 @@ function generateMemoryTopLevelDispatch() {
          WRAM - On-board Work RAM (02000000-0203FFFF)
          Unused (02040000-02FFFFFF)
          */
-        if (readExternalWRAM.slice(0, 10) != "readUnused") {
-            code += "case 0x2:";
-            if (readExternalWRAM.slice(0, 12) != "readInternal") {
-                code += "{data = this." + readExternalWRAM + "(address | 0) | 0;break};";
+        if (readExternalWRAM.slice(0, 10) != 'readUnused') {
+            code += 'case 0x2:';
+            if (readExternalWRAM.slice(0, 12) != 'readInternal') {
+                code += '{data = this.' + readExternalWRAM + '(address | 0) | 0;break};';
             }
         }
         /*
          WRAM - In-Chip Work RAM (03000000-03007FFF)
          Unused (03008000-03FFFFFF)
          */
-        if (readInternalWRAM.slice(0, 10) != "readUnused") {
-            code += "case 0x3:{data = this." + readInternalWRAM + "(address | 0) | 0;break};";
+        if (readInternalWRAM.slice(0, 10) != 'readUnused') {
+            code += 'case 0x3:{data = this.' + readInternalWRAM + '(address | 0) | 0;break};';
         }
         /*
          I/O Registers (04000000-040003FE)
          Unused (04000400-04FFFFFF)
          */
-        code += "case 0x4:{data = this." + readIODispatch + "(address | 0) | 0;break};";
+        code += 'case 0x4:{data = this.' + readIODispatch + '(address | 0) | 0;break};';
         /*
          BG/OBJ Palette RAM (05000000-050003FF)
          Unused (05000400-05FFFFFF)
          */
-        code += "case 0x5:";
+        code += 'case 0x5:';
         /*
          VRAM - Video RAM (06000000-06017FFF)
          Unused (06018000-06FFFFFF)
          */
-        code += "case 0x6:";
+        code += 'case 0x6:';
         /*
          OAM - OBJ Attributes (07000000-070003FF)
          Unused (07000400-07FFFFFF)
          */
-        code += "case 0x7:{data = this." + readVRAM + "(address | 0) | 0;break};";
+        code += 'case 0x7:{data = this.' + readVRAM + '(address | 0) | 0;break};';
         /*
          Game Pak ROM (max 16MB) - Wait State 0 (08000000-08FFFFFF)
          */
-        code += "case 0x8:";
+        code += 'case 0x8:';
         /*
          Game Pak ROM/FlashROM (max 16MB) - Wait State 0 (09000000-09FFFFFF)
          */
-        code += "case 0x9:";
+        code += 'case 0x9:';
         /*
          Game Pak ROM (max 16MB) - Wait State 1 (0A000000-0AFFFFFF)
          */
-        code += "case 0xA:";
+        code += 'case 0xA:';
         /*
          Game Pak ROM/FlashROM (max 16MB) - Wait State 1 (0B000000-0BFFFFFF)
          */
-        code += "case 0xB:{data = this." + readROM + "(address | 0) | 0;break};";
+        code += 'case 0xB:{data = this.' + readROM + '(address | 0) | 0;break};';
         /*
          Game Pak ROM (max 16MB) - Wait State 2 (0C000000-0CFFFFFF)
          */
-        code += "case 0xC:";
+        code += 'case 0xC:';
         /*
          Game Pak ROM/FlashROM (max 16MB) - Wait State 2 (0D000000-0DFFFFFF)
          */
-        code += "case 0xD:{data = this." + readROM2 + "(address | 0) | 0;break};";
+        code += 'case 0xD:{data = this.' + readROM2 + '(address | 0) | 0;break};';
         /*
          Game Pak SRAM  (max 64 KBytes) - 8bit Bus width (0E000000-0E00FFFF)
          */
-        code += "case 0xE:";
+        code += 'case 0xE:';
         /*
          Game Pak SRAM  (max 64 KBytes) - 8bit Bus width (0E000000-0E00FFFF)
          Mirrored up to 0FFFFFFF
          */
-        code += "case 0xF:{data = this." + readSRAM + "(address | 0) | 0;break};";
+        code += 'case 0xF:{data = this.' + readSRAM + '(address | 0) | 0;break};';
         /*
          Unused (10000000-FFFFFFFF)
          */
-        code += "default:{data = this." + readUnused + "(" + ((readUnused.slice(0, 12) == "readUnused32") ? "" : "address | 0") + ") | 0};";
+        code += 'default:{data = this.' + readUnused + '(' + (readUnused.slice(0, 12) == 'readUnused32' ? '' : 'address | 0') + ') | 0};';
         //Generate the function:
-        code += "}return data | 0;";
-        return Function("address", code);
+        code += '}return data | 0;';
+        return Function('address', code);
     }
     //Optimized for DMA 0:
-    function compileMemoryDMA0ReadDispatch(readUnused, readExternalWRAM, readInternalWRAM,
-                                       readIODispatch, readVRAM, readBIOS) {
-        var code = "address = address | 0;var data = 0;switch (address >> 24) {";
+    function compileMemoryDMA0ReadDispatch(readUnused, readExternalWRAM, readInternalWRAM, readIODispatch, readVRAM, readBIOS) {
+        var code = 'address = address | 0;var data = 0;switch (address >> 24) {';
         /*
          Decoder for the nibble at bits 24-27
          (Top 4 bits of the address falls through to default (unused),
@@ -4205,7 +4206,7 @@ function generateMemoryTopLevelDispatch() {
          BIOS Area (00000000-00003FFF)
          Unused (00004000-01FFFFFF)
          */
-        code += "case 0:{data = this." + readBIOS + "(address | 0) | 0;break};";
+        code += 'case 0:{data = this.' + readBIOS + '(address | 0) | 0;break};';
         /*
          Unused (00004000-01FFFFFF)
          */
@@ -4213,51 +4214,50 @@ function generateMemoryTopLevelDispatch() {
          WRAM - On-board Work RAM (02000000-0203FFFF)
          Unused (02040000-02FFFFFF)
          */
-        if (readExternalWRAM.slice(0, 10) != "readUnused") {
-            code += "case 0x2:";
-            if (readExternalWRAM.slice(0, 12) != "readInternal") {
-                code += "{data = this." + readExternalWRAM + "(address | 0) | 0;break};";
+        if (readExternalWRAM.slice(0, 10) != 'readUnused') {
+            code += 'case 0x2:';
+            if (readExternalWRAM.slice(0, 12) != 'readInternal') {
+                code += '{data = this.' + readExternalWRAM + '(address | 0) | 0;break};';
             }
         }
         /*
          WRAM - In-Chip Work RAM (03000000-03007FFF)
          Unused (03008000-03FFFFFF)
          */
-        if (readInternalWRAM.slice(0, 10) != "readUnused") {
-            code += "case 0x3:{data = this." + readInternalWRAM + "(address | 0) | 0;break};";
+        if (readInternalWRAM.slice(0, 10) != 'readUnused') {
+            code += 'case 0x3:{data = this.' + readInternalWRAM + '(address | 0) | 0;break};';
         }
         /*
          I/O Registers (04000000-040003FE)
          Unused (04000400-04FFFFFF)
          */
-        code += "case 0x4:{data = this." + readIODispatch + "(address | 0) | 0;break};";
+        code += 'case 0x4:{data = this.' + readIODispatch + '(address | 0) | 0;break};';
         /*
          BG/OBJ Palette RAM (05000000-050003FF)
          Unused (05000400-05FFFFFF)
          */
-        code += "case 0x5:";
+        code += 'case 0x5:';
         /*
          VRAM - Video RAM (06000000-06017FFF)
          Unused (06018000-06FFFFFF)
          */
-        code += "case 0x6:";
+        code += 'case 0x6:';
         /*
          OAM - OBJ Attributes (07000000-070003FF)
          Unused (07000400-07FFFFFF)
          */
-        code += "case 0x7:{data = this." + readVRAM + "(address | 0) | 0;break};";
+        code += 'case 0x7:{data = this.' + readVRAM + '(address | 0) | 0;break};';
         /*
          Unused, DMA 0 cannot read past 07FFFFFF:
          */
-        code += "default:{data = this." + readUnused + "(" + ((readUnused.slice(0, 12) == "readUnused32") ? "" : "address | 0") + ") | 0};";
+        code += 'default:{data = this.' + readUnused + '(' + (readUnused.slice(0, 12) == 'readUnused32' ? '' : 'address | 0') + ') | 0};';
         //Generate the function:
-        code += "}return data | 0;";
-        return Function("address", code);
+        code += '}return data | 0;';
+        return Function('address', code);
     }
     //Optimized for DMA 1-3:
-    function compileMemoryDMAReadDispatch(readUnused, readExternalWRAM, readInternalWRAM,
-                                       readIODispatch, readVRAM, readROM, readROM2, readBIOS) {
-        var code = "address = address | 0;var data = 0;switch (address >> 24) {";
+    function compileMemoryDMAReadDispatch(readUnused, readExternalWRAM, readInternalWRAM, readIODispatch, readVRAM, readROM, readROM2, readBIOS) {
+        var code = 'address = address | 0;var data = 0;switch (address >> 24) {';
         /*
          Decoder for the nibble at bits 24-27
          (Top 4 bits of the address falls through to default (unused),
@@ -4267,7 +4267,7 @@ function generateMemoryTopLevelDispatch() {
          BIOS Area (00000000-00003FFF)
          Unused (00004000-01FFFFFF)
          */
-        code += "case 0:{data = this." + readBIOS + "(address | 0) | 0;break};";
+        code += 'case 0:{data = this.' + readBIOS + '(address | 0) | 0;break};';
         /*
          Unused (00004000-01FFFFFF)
          */
@@ -4275,75 +4275,74 @@ function generateMemoryTopLevelDispatch() {
          WRAM - On-board Work RAM (02000000-0203FFFF)
          Unused (02040000-02FFFFFF)
          */
-        if (readExternalWRAM.slice(0, 10) != "readUnused") {
-            code += "case 0x2:";
-            if (readExternalWRAM.slice(0, 12) != "readInternal") {
-                code += "{data = this." + readExternalWRAM + "(address | 0) | 0;break};";
+        if (readExternalWRAM.slice(0, 10) != 'readUnused') {
+            code += 'case 0x2:';
+            if (readExternalWRAM.slice(0, 12) != 'readInternal') {
+                code += '{data = this.' + readExternalWRAM + '(address | 0) | 0;break};';
             }
         }
         /*
          WRAM - In-Chip Work RAM (03000000-03007FFF)
          Unused (03008000-03FFFFFF)
          */
-        if (readInternalWRAM.slice(0, 10) != "readUnused") {
-            code += "case 0x3:{data = this." + readInternalWRAM + "(address | 0) | 0;break};";
+        if (readInternalWRAM.slice(0, 10) != 'readUnused') {
+            code += 'case 0x3:{data = this.' + readInternalWRAM + '(address | 0) | 0;break};';
         }
         /*
          I/O Registers (04000000-040003FE)
          Unused (04000400-04FFFFFF)
          */
-        code += "case 0x4:{data = this." + readIODispatch + "(address | 0) | 0;break};";
+        code += 'case 0x4:{data = this.' + readIODispatch + '(address | 0) | 0;break};';
         /*
          BG/OBJ Palette RAM (05000000-050003FF)
          Unused (05000400-05FFFFFF)
          */
-        code += "case 0x5:";
+        code += 'case 0x5:';
         /*
          VRAM - Video RAM (06000000-06017FFF)
          Unused (06018000-06FFFFFF)
          */
-        code += "case 0x6:";
+        code += 'case 0x6:';
         /*
          OAM - OBJ Attributes (07000000-070003FF)
          Unused (07000400-07FFFFFF)
          */
-        code += "case 0x7:{data = this." + readVRAM + "(address | 0) | 0;break};";
+        code += 'case 0x7:{data = this.' + readVRAM + '(address | 0) | 0;break};';
         /*
          Game Pak ROM (max 16MB) - Wait State 0 (08000000-08FFFFFF)
          */
-        code += "case 0x8:";
+        code += 'case 0x8:';
         /*
          Game Pak ROM/FlashROM (max 16MB) - Wait State 0 (09000000-09FFFFFF)
          */
-        code += "case 0x9:";
+        code += 'case 0x9:';
         /*
          Game Pak ROM (max 16MB) - Wait State 1 (0A000000-0AFFFFFF)
          */
-        code += "case 0xA:";
+        code += 'case 0xA:';
         /*
          Game Pak ROM/FlashROM (max 16MB) - Wait State 1 (0B000000-0BFFFFFF)
          */
-        code += "case 0xB:{data = this." + readROM + "(address | 0) | 0;break};";
+        code += 'case 0xB:{data = this.' + readROM + '(address | 0) | 0;break};';
         /*
          Game Pak ROM (max 16MB) - Wait State 2 (0C000000-0CFFFFFF)
          */
-        code += "case 0xC:";
+        code += 'case 0xC:';
         /*
          Game Pak ROM/FlashROM (max 16MB) - Wait State 2 (0D000000-0DFFFFFF)
          */
-        code += "case 0xD:{data = this." + readROM2 + "(address | 0) | 0;break};";
+        code += 'case 0xD:{data = this.' + readROM2 + '(address | 0) | 0;break};';
         /*
          Unused, DMA 1-3 cannot read past 0DFFFFFF:
          */
-        code += "default:{data = this." + readUnused + "(" + ((readUnused.slice(0, 12) == "readUnused32") ? "" : "address | 0") + ") | 0};";
+        code += 'default:{data = this.' + readUnused + '(' + (readUnused.slice(0, 12) == 'readUnused32' ? '' : 'address | 0') + ') | 0};';
         //Generate the function:
-        code += "}return data | 0;";
-        return Function("address", code);
+        code += '}return data | 0;';
+        return Function('address', code);
     }
     //Graphics should not be handled as often for this one:
-    function compileMemoryWriteDispatch(writeUnused, writeExternalWRAM, writeInternalWRAM,
-                                        writeIODispatch, writeVRAM, writeROM, writeSRAM) {
-        var code = "address = address | 0;data = data | 0;switch (address >> 24) {";
+    function compileMemoryWriteDispatch(writeUnused, writeExternalWRAM, writeInternalWRAM, writeIODispatch, writeVRAM, writeROM, writeSRAM) {
+        var code = 'address = address | 0;data = data | 0;switch (address >> 24) {';
         /*
          Decoder for the nibble at bits 24-27
          (Top 4 bits of the address falls through to default (unused),
@@ -4360,84 +4359,93 @@ function generateMemoryTopLevelDispatch() {
          WRAM - On-board Work RAM (02000000-0203FFFF)
          Unused (02040000-02FFFFFF)
          */
-        if (writeExternalWRAM != "writeUnused") {
-            code += "case 0x2:";
-            if (writeExternalWRAM.slice(0, 13) != "writeInternal") {
-                code += "{this." + writeExternalWRAM + "(address | 0, data | 0);break};";
+        if (writeExternalWRAM != 'writeUnused') {
+            code += 'case 0x2:';
+            if (writeExternalWRAM.slice(0, 13) != 'writeInternal') {
+                code += '{this.' + writeExternalWRAM + '(address | 0, data | 0);break};';
             }
         }
         /*
          WRAM - In-Chip Work RAM (03000000-03007FFF)
          Unused (03008000-03FFFFFF)
          */
-        if (writeInternalWRAM != "writeUnused") {
-            code += "case 0x3:{this." + writeInternalWRAM + "(address | 0, data | 0);break};";
+        if (writeInternalWRAM != 'writeUnused') {
+            code += 'case 0x3:{this.' + writeInternalWRAM + '(address | 0, data | 0);break};';
         }
         /*
          I/O Registers (04000000-040003FE)
          Unused (04000400-04FFFFFF)
          */
-        code += "case 0x4:{this." + writeIODispatch + "(address | 0, data | 0);break};";
+        code += 'case 0x4:{this.' + writeIODispatch + '(address | 0, data | 0);break};';
         /*
          BG/OBJ Palette RAM (05000000-050003FF)
          Unused (05000400-05FFFFFF)
          */
-        code += "case 0x5:";
+        code += 'case 0x5:';
         /*
          VRAM - Video RAM (06000000-06017FFF)
          Unused (06018000-06FFFFFF)
          */
-        code += "case 0x6:";
+        code += 'case 0x6:';
         /*
          OAM - OBJ Attributes (07000000-070003FF)
          Unused (07000400-07FFFFFF)
          */
-        code += "case 0x7:{this." + writeVRAM + "(address | 0, data | 0);break};";
+        code += 'case 0x7:{this.' + writeVRAM + '(address | 0, data | 0);break};';
         /*
          Game Pak ROM (max 16MB) - Wait State 0 (08000000-08FFFFFF)
          */
-        code += "case 0x8:";
+        code += 'case 0x8:';
         /*
          Game Pak ROM/FlashROM (max 16MB) - Wait State 0 (09000000-09FFFFFF)
          */
-        code += "case 0x9:";
+        code += 'case 0x9:';
         /*
          Game Pak ROM (max 16MB) - Wait State 1 (0A000000-0AFFFFFF)
          */
-        code += "case 0xA:";
+        code += 'case 0xA:';
         /*
          Game Pak ROM/FlashROM (max 16MB) - Wait State 1 (0B000000-0BFFFFFF)
          */
-        code += "case 0xB:";
+        code += 'case 0xB:';
         /*
          Game Pak ROM (max 16MB) - Wait State 2 (0C000000-0CFFFFFF)
          */
-        code += "case 0xC:";
+        code += 'case 0xC:';
         /*
          Game Pak ROM/FlashROM (max 16MB) - Wait State 2 (0D000000-0DFFFFFF)
          */
-        code += "case 0xD:{this." + writeROM + "(address | 0, data | 0);break};";
+        code += 'case 0xD:{this.' + writeROM + '(address | 0, data | 0);break};';
         /*
          Game Pak SRAM  (max 64 KBytes) - 8bit Bus width (0E000000-0E00FFFF)
          */
-        code += "case 0xE:";
+        code += 'case 0xE:';
         /*
          Game Pak SRAM  (max 64 KBytes) - 8bit Bus width (0E000000-0E00FFFF)
          Mirrored up to 0FFFFFFF
          */
-        code += "case 0xF:{this." + writeSRAM + "(address | 0, data | 0);break};";
+        code += 'case 0xF:{this.' + writeSRAM + '(address | 0, data | 0);break};';
         /*
          Unused (10000000-FFFFFFFF)
          */
-        code += "default:{this." + writeUnused + "()}";
+        code += 'default:{this.' + writeUnused + '()}';
         //Generate the function:
-        code += "}";
-        return Function("address", "data", code);
+        code += '}';
+        return Function('address', 'data', code);
     }
     //Graphics calls slightly faster in this one, at the expense of other calls:
-    function compileMemoryWriteDispatch2(writeUnused, writeExternalWRAM, writeInternalWRAM,
-                                        writeIODispatch, writePalette, writeVRAM, writeOAM, writeROM, writeSRAM) {
-        var code = "address = address | 0;data = data | 0;switch (address >> 24) {";
+    function compileMemoryWriteDispatch2(
+        writeUnused,
+        writeExternalWRAM,
+        writeInternalWRAM,
+        writeIODispatch,
+        writePalette,
+        writeVRAM,
+        writeOAM,
+        writeROM,
+        writeSRAM
+    ) {
+        var code = 'address = address | 0;data = data | 0;switch (address >> 24) {';
         /*
          Decoder for the nibble at bits 24-27
          (Top 4 bits of the address falls through to default (unused),
@@ -4454,84 +4462,83 @@ function generateMemoryTopLevelDispatch() {
          WRAM - On-board Work RAM (02000000-0203FFFF)
          Unused (02040000-02FFFFFF)
          */
-        if (writeExternalWRAM != "writeUnused") {
-            code += "case 0x2:";
-            if (writeExternalWRAM.slice(0, 13) != "writeInternal") {
-                code += "{this." + writeExternalWRAM + "(address | 0, data | 0);break};";
+        if (writeExternalWRAM != 'writeUnused') {
+            code += 'case 0x2:';
+            if (writeExternalWRAM.slice(0, 13) != 'writeInternal') {
+                code += '{this.' + writeExternalWRAM + '(address | 0, data | 0);break};';
             }
         }
         /*
          WRAM - In-Chip Work RAM (03000000-03007FFF)
          Unused (03008000-03FFFFFF)
          */
-        if (writeInternalWRAM != "writeUnused") {
-            code += "case 0x3:{this." + writeInternalWRAM + "(address | 0, data | 0);break};";
+        if (writeInternalWRAM != 'writeUnused') {
+            code += 'case 0x3:{this.' + writeInternalWRAM + '(address | 0, data | 0);break};';
         }
         /*
          I/O Registers (04000000-040003FE)
          Unused (04000400-04FFFFFF)
          */
-        code += "case 0x4:{this." + writeIODispatch + "(address | 0, data | 0);break};";
+        code += 'case 0x4:{this.' + writeIODispatch + '(address | 0, data | 0);break};';
         /*
          BG/OBJ Palette RAM (05000000-050003FF)
          Unused (05000400-05FFFFFF)
          */
-        code += "case 0x5:{this." + writePalette + "(address | 0, data | 0);break};";
+        code += 'case 0x5:{this.' + writePalette + '(address | 0, data | 0);break};';
         /*
          VRAM - Video RAM (06000000-06017FFF)
          Unused (06018000-06FFFFFF)
          */
-        code += "case 0x6:{this." + writeVRAM + "(address | 0, data | 0);break};";
+        code += 'case 0x6:{this.' + writeVRAM + '(address | 0, data | 0);break};';
         /*
          OAM - OBJ Attributes (07000000-070003FF)
          Unused (07000400-07FFFFFF)
          */
-        code += "case 0x7:{this." + writeOAM + "(address | 0, data | 0);break};";
+        code += 'case 0x7:{this.' + writeOAM + '(address | 0, data | 0);break};';
         /*
          Game Pak ROM (max 16MB) - Wait State 0 (08000000-08FFFFFF)
          */
-        code += "case 0x8:";
+        code += 'case 0x8:';
         /*
          Game Pak ROM/FlashROM (max 16MB) - Wait State 0 (09000000-09FFFFFF)
          */
-        code += "case 0x9:";
+        code += 'case 0x9:';
         /*
          Game Pak ROM (max 16MB) - Wait State 1 (0A000000-0AFFFFFF)
          */
-        code += "case 0xA:";
+        code += 'case 0xA:';
         /*
          Game Pak ROM/FlashROM (max 16MB) - Wait State 1 (0B000000-0BFFFFFF)
          */
-        code += "case 0xB:";
+        code += 'case 0xB:';
         /*
          Game Pak ROM (max 16MB) - Wait State 2 (0C000000-0CFFFFFF)
          */
-        code += "case 0xC:";
+        code += 'case 0xC:';
         /*
          Game Pak ROM/FlashROM (max 16MB) - Wait State 2 (0D000000-0DFFFFFF)
          */
-        code += "case 0xD:{this." + writeROM + "(address | 0, data | 0);break};";
+        code += 'case 0xD:{this.' + writeROM + '(address | 0, data | 0);break};';
         /*
          Game Pak SRAM  (max 64 KBytes) - 8bit Bus width (0E000000-0E00FFFF)
          */
-        code += "case 0xE:";
+        code += 'case 0xE:';
         /*
          Game Pak SRAM  (max 64 KBytes) - 8bit Bus width (0E000000-0E00FFFF)
          Mirrored up to 0FFFFFFF
          */
-        code += "case 0xF:{this." + writeSRAM + "(address | 0, data | 0);break};";
+        code += 'case 0xF:{this.' + writeSRAM + '(address | 0, data | 0);break};';
         /*
          Unused (10000000-FFFFFFFF)
          */
-        code += "default:{this." + writeUnused + "()}";
+        code += 'default:{this.' + writeUnused + '()}';
         //Generate the function:
-        code += "}";
-        return Function("address", "data", code);
+        code += '}';
+        return Function('address', 'data', code);
     }
     //Optimized for DMA 0-2:
-    function compileMemoryDMAWriteDispatch(writeUnused, writeExternalWRAM, writeInternalWRAM,
-                                        writeIODispatch, writePalette, writeVRAM, writeOAM) {
-        var code = "address = address | 0;data = data | 0;switch (address >> 24) {";
+    function compileMemoryDMAWriteDispatch(writeUnused, writeExternalWRAM, writeInternalWRAM, writeIODispatch, writePalette, writeVRAM, writeOAM) {
+        var code = 'address = address | 0;data = data | 0;switch (address >> 24) {';
         /*
          Decoder for the nibble at bits 24-27
          (Top 4 bits of the address falls through to default (unused),
@@ -4548,51 +4555,59 @@ function generateMemoryTopLevelDispatch() {
          WRAM - On-board Work RAM (02000000-0203FFFF)
          Unused (02040000-02FFFFFF)
          */
-        if (writeExternalWRAM != "writeUnused") {
-            code += "case 0x2:";
-            if (writeExternalWRAM.slice(0, 13) != "writeInternal") {
-                code += "{this." + writeExternalWRAM + "(address | 0, data | 0);break};";
+        if (writeExternalWRAM != 'writeUnused') {
+            code += 'case 0x2:';
+            if (writeExternalWRAM.slice(0, 13) != 'writeInternal') {
+                code += '{this.' + writeExternalWRAM + '(address | 0, data | 0);break};';
             }
         }
         /*
          WRAM - In-Chip Work RAM (03000000-03007FFF)
          Unused (03008000-03FFFFFF)
          */
-        if (writeInternalWRAM != "writeUnused") {
-            code += "case 0x3:{this." + writeInternalWRAM + "(address | 0, data | 0);break};";
+        if (writeInternalWRAM != 'writeUnused') {
+            code += 'case 0x3:{this.' + writeInternalWRAM + '(address | 0, data | 0);break};';
         }
         /*
          I/O Registers (04000000-040003FE)
          Unused (04000400-04FFFFFF)
          */
-        code += "case 0x4:{this." + writeIODispatch + "(address | 0, data | 0);break};";
+        code += 'case 0x4:{this.' + writeIODispatch + '(address | 0, data | 0);break};';
         /*
          BG/OBJ Palette RAM (05000000-050003FF)
          Unused (05000400-05FFFFFF)
          */
-        code += "case 0x5:{this." + writePalette + "(address | 0, data | 0);break};";
+        code += 'case 0x5:{this.' + writePalette + '(address | 0, data | 0);break};';
         /*
          VRAM - Video RAM (06000000-06017FFF)
          Unused (06018000-06FFFFFF)
          */
-        code += "case 0x6:{this." + writeVRAM + "(address | 0, data | 0);break};";
+        code += 'case 0x6:{this.' + writeVRAM + '(address | 0, data | 0);break};';
         /*
          OAM - OBJ Attributes (07000000-070003FF)
          Unused (07000400-07FFFFFF)
          */
-        code += "case 0x7:{this." + writeOAM + "(address | 0, data | 0);break};";
+        code += 'case 0x7:{this.' + writeOAM + '(address | 0, data | 0);break};';
         /*
          Unused, DMA 0-2 cannot write past 07FFFFFF:
          */
-        code += "default:{this." + writeUnused + "()}";
+        code += 'default:{this.' + writeUnused + '()}';
         //Generate the function:
-        code += "}";
-        return Function("address", "data", code);
+        code += '}';
+        return Function('address', 'data', code);
     }
     //Optimized for DMA 3:
-    function compileMemoryDMA3WriteDispatch(writeUnused, writeExternalWRAM, writeInternalWRAM,
-                                         writeIODispatch, writePalette, writeVRAM, writeOAM, writeROM) {
-        var code = "address = address | 0;data = data | 0;switch (address >> 24) {";
+    function compileMemoryDMA3WriteDispatch(
+        writeUnused,
+        writeExternalWRAM,
+        writeInternalWRAM,
+        writeIODispatch,
+        writePalette,
+        writeVRAM,
+        writeOAM,
+        writeROM
+    ) {
+        var code = 'address = address | 0;data = data | 0;switch (address >> 24) {';
         /*
          Decoder for the nibble at bits 24-27
          (Top 4 bits of the address falls through to default (unused),
@@ -4609,599 +4624,599 @@ function generateMemoryTopLevelDispatch() {
          WRAM - On-board Work RAM (02000000-0203FFFF)
          Unused (02040000-02FFFFFF)
          */
-        if (writeExternalWRAM != "writeUnused") {
-            code += "case 0x2:";
-            if (writeExternalWRAM.slice(0, 13) != "writeInternal") {
-                code += "{this." + writeExternalWRAM + "(address | 0, data | 0);break};";
+        if (writeExternalWRAM != 'writeUnused') {
+            code += 'case 0x2:';
+            if (writeExternalWRAM.slice(0, 13) != 'writeInternal') {
+                code += '{this.' + writeExternalWRAM + '(address | 0, data | 0);break};';
             }
         }
         /*
          WRAM - In-Chip Work RAM (03000000-03007FFF)
          Unused (03008000-03FFFFFF)
          */
-        if (writeInternalWRAM != "writeUnused") {
-            code += "case 0x3:{this." + writeInternalWRAM + "(address | 0, data | 0);break};";
+        if (writeInternalWRAM != 'writeUnused') {
+            code += 'case 0x3:{this.' + writeInternalWRAM + '(address | 0, data | 0);break};';
         }
         /*
          I/O Registers (04000000-040003FE)
          Unused (04000400-04FFFFFF)
          */
-        code += "case 0x4:{this." + writeIODispatch + "(address | 0, data | 0);break};";
+        code += 'case 0x4:{this.' + writeIODispatch + '(address | 0, data | 0);break};';
         /*
          BG/OBJ Palette RAM (05000000-050003FF)
          Unused (05000400-05FFFFFF)
          */
-        code += "case 0x5:{this." + writePalette + "(address | 0, data | 0);break};";
+        code += 'case 0x5:{this.' + writePalette + '(address | 0, data | 0);break};';
         /*
          VRAM - Video RAM (06000000-06017FFF)
          Unused (06018000-06FFFFFF)
          */
-        code += "case 0x6:{this." + writeVRAM + "(address | 0, data | 0);break};";
+        code += 'case 0x6:{this.' + writeVRAM + '(address | 0, data | 0);break};';
         /*
          OAM - OBJ Attributes (07000000-070003FF)
          Unused (07000400-07FFFFFF)
          */
-        code += "case 0x7:{this." + writeOAM + "(address | 0, data | 0);break};";
+        code += 'case 0x7:{this.' + writeOAM + '(address | 0, data | 0);break};';
         /*
          Game Pak ROM (max 16MB) - Wait State 0 (08000000-08FFFFFF)
          */
-        code += "case 0x8:";
+        code += 'case 0x8:';
         /*
          Game Pak ROM/FlashROM (max 16MB) - Wait State 0 (09000000-09FFFFFF)
          */
-        code += "case 0x9:";
+        code += 'case 0x9:';
         /*
          Game Pak ROM (max 16MB) - Wait State 1 (0A000000-0AFFFFFF)
          */
-        code += "case 0xA:";
+        code += 'case 0xA:';
         /*
          Game Pak ROM/FlashROM (max 16MB) - Wait State 1 (0B000000-0BFFFFFF)
          */
-        code += "case 0xB:";
+        code += 'case 0xB:';
         /*
          Game Pak ROM (max 16MB) - Wait State 2 (0C000000-0CFFFFFF)
          */
-        code += "case 0xC:";
+        code += 'case 0xC:';
         /*
          Game Pak ROM/FlashROM (max 16MB) - Wait State 2 (0D000000-0DFFFFFF)
          */
-        code += "case 0xD:{this." + writeROM + "(address | 0, data | 0);break};";
+        code += 'case 0xD:{this.' + writeROM + '(address | 0, data | 0);break};';
         /*
          Unused, DMA 3 cannot write past 0DFFFFFF:
          */
-        code += "default:{this." + writeUnused + "()}";
+        code += 'default:{this.' + writeUnused + '()}';
         //Generate the function:
-        code += "}";
-        return Function("address", "data", code);
+        code += '}';
+        return Function('address', 'data', code);
     }
     //Generic 8-Bit Read Dispatch:
     GameBoyAdvanceMemory.prototype.memoryRead8Generated = [
-                                                             compileMemoryReadDispatch(
-                                                                                        "readUnused8",
-                                                                                        "readInternalWRAM8",
-                                                                                        "readInternalWRAM8",
-                                                                                        "readIODispatch8",
-                                                                                        "readVRAM8Preliminary",
-                                                                                        "readROM8",
-                                                                                        "readROM28",
-                                                                                        "readSRAM8",
-                                                                                        "readBIOS8"
-                                                                                        ),
-                                                             compileMemoryReadDispatch(
-                                                                                        "readUnused8",
-                                                                                        "readExternalWRAM8",
-                                                                                        "readInternalWRAM8",
-                                                                                        "readIODispatch8",
-                                                                                        "readVRAM8Preliminary",
-                                                                                        "readROM8",
-                                                                                        "readROM28",
-                                                                                        "readSRAM8",
-                                                                                        "readBIOS8"
-                                                                                        ),
-                                                             compileMemoryReadDispatch(
-                                                                                        "readUnused8",
-                                                                                        "readUnused8",
-                                                                                        "readUnused8",
-                                                                                        "readIODispatch8",
-                                                                                        "readVRAM8Preliminary",
-                                                                                        "readROM8",
-                                                                                        "readROM28",
-                                                                                        "readSRAM8",
-                                                                                        "readBIOS8"
-                                                                                        )
-                                                             ];
+        compileMemoryReadDispatch(
+            'readUnused8',
+            'readInternalWRAM8',
+            'readInternalWRAM8',
+            'readIODispatch8',
+            'readVRAM8Preliminary',
+            'readROM8',
+            'readROM28',
+            'readSRAM8',
+            'readBIOS8'
+        ),
+        compileMemoryReadDispatch(
+            'readUnused8',
+            'readExternalWRAM8',
+            'readInternalWRAM8',
+            'readIODispatch8',
+            'readVRAM8Preliminary',
+            'readROM8',
+            'readROM28',
+            'readSRAM8',
+            'readBIOS8'
+        ),
+        compileMemoryReadDispatch(
+            'readUnused8',
+            'readUnused8',
+            'readUnused8',
+            'readIODispatch8',
+            'readVRAM8Preliminary',
+            'readROM8',
+            'readROM28',
+            'readSRAM8',
+            'readBIOS8'
+        ),
+    ];
     //Generic 8-Bit Write Dispatch:
     GameBoyAdvanceMemory.prototype.memoryWrite8Generated = [
-                                                             compileMemoryWriteDispatch(
-                                                                                         "writeUnused",
-                                                                                         "writeInternalWRAM8",
-                                                                                         "writeInternalWRAM8",
-                                                                                         "writeIODispatch8",
-                                                                                         "writeVRAM8Preliminary",
-                                                                                         "writeROM8",
-                                                                                         "writeSRAM8"
-                                                                                         ),
-                                                             compileMemoryWriteDispatch(
-                                                                                         "writeUnused",
-                                                                                         "writeExternalWRAM8",
-                                                                                         "writeInternalWRAM8",
-                                                                                         "writeIODispatch8",
-                                                                                         "writeVRAM8Preliminary",
-                                                                                         "writeROM8",
-                                                                                         "writeSRAM8"
-                                                                                         ),
-                                                             compileMemoryWriteDispatch(
-                                                                                         "writeUnused",
-                                                                                         "writeUnused",
-                                                                                         "writeUnused",
-                                                                                         "writeIODispatch8",
-                                                                                         "writeVRAM8Preliminary",
-                                                                                         "writeROM8",
-                                                                                         "writeSRAM8"
-                                                                                         )
-                                                             ];
+        compileMemoryWriteDispatch(
+            'writeUnused',
+            'writeInternalWRAM8',
+            'writeInternalWRAM8',
+            'writeIODispatch8',
+            'writeVRAM8Preliminary',
+            'writeROM8',
+            'writeSRAM8'
+        ),
+        compileMemoryWriteDispatch(
+            'writeUnused',
+            'writeExternalWRAM8',
+            'writeInternalWRAM8',
+            'writeIODispatch8',
+            'writeVRAM8Preliminary',
+            'writeROM8',
+            'writeSRAM8'
+        ),
+        compileMemoryWriteDispatch(
+            'writeUnused',
+            'writeUnused',
+            'writeUnused',
+            'writeIODispatch8',
+            'writeVRAM8Preliminary',
+            'writeROM8',
+            'writeSRAM8'
+        ),
+    ];
     //Generic 16-Bit Read Dispatch:
     GameBoyAdvanceMemory.prototype.memoryRead16Generated = [
-                                                              compileMemoryReadDispatch(
-                                                                                         "readUnused16",
-                                                                                         "readInternalWRAM16",
-                                                                                         "readInternalWRAM16",
-                                                                                         "readIODispatch16",
-                                                                                         "readVRAM16Preliminary",
-                                                                                         "readROM16",
-                                                                                         "readROM216",
-                                                                                         "readSRAM16",
-                                                                                         "readBIOS16"
-                                                                                         ),
-                                                              compileMemoryReadDispatch(
-                                                                                         "readUnused16",
-                                                                                         "readExternalWRAM16",
-                                                                                         "readInternalWRAM16",
-                                                                                         "readIODispatch16",
-                                                                                         "readVRAM16Preliminary",
-                                                                                         "readROM16",
-                                                                                         "readROM216",
-                                                                                         "readSRAM16",
-                                                                                         "readBIOS16"
-                                                                                         ),
-                                                              compileMemoryReadDispatch(
-                                                                                         "readUnused16",
-                                                                                         "readUnused16",
-                                                                                         "readUnused16",
-                                                                                         "readIODispatch16",
-                                                                                         "readVRAM16Preliminary",
-                                                                                         "readROM16",
-                                                                                         "readROM216",
-                                                                                         "readSRAM16",
-                                                                                         "readBIOS16"
-                                                                                         )
-                                                              ];
+        compileMemoryReadDispatch(
+            'readUnused16',
+            'readInternalWRAM16',
+            'readInternalWRAM16',
+            'readIODispatch16',
+            'readVRAM16Preliminary',
+            'readROM16',
+            'readROM216',
+            'readSRAM16',
+            'readBIOS16'
+        ),
+        compileMemoryReadDispatch(
+            'readUnused16',
+            'readExternalWRAM16',
+            'readInternalWRAM16',
+            'readIODispatch16',
+            'readVRAM16Preliminary',
+            'readROM16',
+            'readROM216',
+            'readSRAM16',
+            'readBIOS16'
+        ),
+        compileMemoryReadDispatch(
+            'readUnused16',
+            'readUnused16',
+            'readUnused16',
+            'readIODispatch16',
+            'readVRAM16Preliminary',
+            'readROM16',
+            'readROM216',
+            'readSRAM16',
+            'readBIOS16'
+        ),
+    ];
     //DMA 0 Optimized 16-Bit Read Dispatch:
     GameBoyAdvanceMemory.prototype.memoryReadDMA16Generated = [
-                                                            compileMemoryDMA0ReadDispatch(
-                                                                                      "readUnused16DMA",
-                                                                                      "readInternalWRAM16",
-                                                                                      "readInternalWRAM16",
-                                                                                      "readIODispatch16",
-                                                                                      "readVRAM16Preliminary",
-                                                                                      "readBIOS16DMA"
-                                                                                      ),
-                                                            compileMemoryDMA0ReadDispatch(
-                                                                                      "readUnused16DMA",
-                                                                                      "readExternalWRAM16",
-                                                                                      "readInternalWRAM16",
-                                                                                      "readIODispatch16",
-                                                                                      "readVRAM16Preliminary",
-                                                                                      "readBIOS16DMA"
-                                                                                      ),
-                                                            compileMemoryDMA0ReadDispatch(
-                                                                                      "readUnused16DMA",
-                                                                                      "readUnused16DMA",
-                                                                                      "readUnused16DMA",
-                                                                                      "readIODispatch16",
-                                                                                      "readVRAM16Preliminary",
-                                                                                      "readBIOS16DMA"
-                                                                                      )
-                                                            ];
+        compileMemoryDMA0ReadDispatch(
+            'readUnused16DMA',
+            'readInternalWRAM16',
+            'readInternalWRAM16',
+            'readIODispatch16',
+            'readVRAM16Preliminary',
+            'readBIOS16DMA'
+        ),
+        compileMemoryDMA0ReadDispatch(
+            'readUnused16DMA',
+            'readExternalWRAM16',
+            'readInternalWRAM16',
+            'readIODispatch16',
+            'readVRAM16Preliminary',
+            'readBIOS16DMA'
+        ),
+        compileMemoryDMA0ReadDispatch(
+            'readUnused16DMA',
+            'readUnused16DMA',
+            'readUnused16DMA',
+            'readIODispatch16',
+            'readVRAM16Preliminary',
+            'readBIOS16DMA'
+        ),
+    ];
     //DMA 1-3 Optimized 16-Bit Read Dispatch:
     GameBoyAdvanceMemory.prototype.memoryReadDMA16FullGenerated = [
-                                                            compileMemoryDMAReadDispatch(
-                                                                                      "readUnused16DMA",
-                                                                                      "readInternalWRAM16",
-                                                                                      "readInternalWRAM16",
-                                                                                      "readIODispatch16",
-                                                                                      "readVRAM16Preliminary",
-                                                                                      "readROM16",
-                                                                                      "readROM216",
-                                                                                      "readBIOS16DMA"
-                                                                                      ),
-                                                            compileMemoryDMAReadDispatch(
-                                                                                      "readUnused16DMA",
-                                                                                      "readExternalWRAM16",
-                                                                                      "readInternalWRAM16",
-                                                                                      "readIODispatch16",
-                                                                                      "readVRAM16Preliminary",
-                                                                                      "readROM16",
-                                                                                      "readROM216",
-                                                                                      "readBIOS16DMA"
-                                                                                      ),
-                                                            compileMemoryDMAReadDispatch(
-                                                                                      "readUnused16DMA",
-                                                                                      "readUnused16DMA",
-                                                                                      "readUnused16DMA",
-                                                                                      "readIODispatch16",
-                                                                                      "readVRAM16Preliminary",
-                                                                                      "readROM16",
-                                                                                      "readROM216",
-                                                                                      "readBIOS16DMA"
-                                                                                      )
-                                                            ];
+        compileMemoryDMAReadDispatch(
+            'readUnused16DMA',
+            'readInternalWRAM16',
+            'readInternalWRAM16',
+            'readIODispatch16',
+            'readVRAM16Preliminary',
+            'readROM16',
+            'readROM216',
+            'readBIOS16DMA'
+        ),
+        compileMemoryDMAReadDispatch(
+            'readUnused16DMA',
+            'readExternalWRAM16',
+            'readInternalWRAM16',
+            'readIODispatch16',
+            'readVRAM16Preliminary',
+            'readROM16',
+            'readROM216',
+            'readBIOS16DMA'
+        ),
+        compileMemoryDMAReadDispatch(
+            'readUnused16DMA',
+            'readUnused16DMA',
+            'readUnused16DMA',
+            'readIODispatch16',
+            'readVRAM16Preliminary',
+            'readROM16',
+            'readROM216',
+            'readBIOS16DMA'
+        ),
+    ];
     //Generic 16-Bit Instruction Read Dispatch:
     GameBoyAdvanceMemory.prototype.memoryReadCPU16Generated = [
-                                                                 compileMemoryReadDispatch(
-                                                                                            "readUnused16CPU",
-                                                                                            "readInternalWRAM16CPU",
-                                                                                            "readInternalWRAM16CPU",
-                                                                                            "readIODispatch16CPU",
-                                                                                            "readVRAM16CPUPreliminary",
-                                                                                            "readROM16CPU",
-                                                                                            "readROM216CPU",
-                                                                                            "readSRAM16CPU",
-                                                                                            "readBIOS16CPU"
-                                                                                            ),
-                                                                 compileMemoryReadDispatch(
-                                                                                            "readUnused16CPU",
-                                                                                            "readExternalWRAM16CPU",
-                                                                                            "readInternalWRAM16CPU",
-                                                                                            "readIODispatch16CPU",
-                                                                                            "readVRAM16CPUPreliminary",
-                                                                                            "readROM16CPU",
-                                                                                            "readROM216CPU",
-                                                                                            "readSRAM16CPU",
-                                                                                            "readBIOS16CPU"
-                                                                                            ),
-                                                                 compileMemoryReadDispatch(
-                                                                                            "readUnused16CPU",
-                                                                                            "readUnused16CPU",
-                                                                                            "readUnused16CPU",
-                                                                                            "readIODispatch16CPU",
-                                                                                            "readVRAM16CPUPreliminary",
-                                                                                            "readROM16CPU",
-                                                                                            "readROM216CPU",
-                                                                                            "readSRAM16CPU",
-                                                                                            "readBIOS16CPU"
-                                                                                            )
-                                                                 ];
+        compileMemoryReadDispatch(
+            'readUnused16CPU',
+            'readInternalWRAM16CPU',
+            'readInternalWRAM16CPU',
+            'readIODispatch16CPU',
+            'readVRAM16CPUPreliminary',
+            'readROM16CPU',
+            'readROM216CPU',
+            'readSRAM16CPU',
+            'readBIOS16CPU'
+        ),
+        compileMemoryReadDispatch(
+            'readUnused16CPU',
+            'readExternalWRAM16CPU',
+            'readInternalWRAM16CPU',
+            'readIODispatch16CPU',
+            'readVRAM16CPUPreliminary',
+            'readROM16CPU',
+            'readROM216CPU',
+            'readSRAM16CPU',
+            'readBIOS16CPU'
+        ),
+        compileMemoryReadDispatch(
+            'readUnused16CPU',
+            'readUnused16CPU',
+            'readUnused16CPU',
+            'readIODispatch16CPU',
+            'readVRAM16CPUPreliminary',
+            'readROM16CPU',
+            'readROM216CPU',
+            'readSRAM16CPU',
+            'readBIOS16CPU'
+        ),
+    ];
     //Generic 16-Bit Write Dispatch:
     GameBoyAdvanceMemory.prototype.memoryWrite16Generated = [
-                                                              compileMemoryWriteDispatch2(
-                                                                                          "writeUnused",
-                                                                                          "writeInternalWRAM16",
-                                                                                          "writeInternalWRAM16",
-                                                                                          "writeIODispatch16",
-                                                                                          "writePalette16",
-                                                                                          "writeVRAM16",
-                                                                                          "writeOBJ16",
-                                                                                          "writeROM16",
-                                                                                          "writeSRAM16"
-                                                                                          ),
-                                                              compileMemoryWriteDispatch2(
-                                                                                          "writeUnused",
-                                                                                          "writeExternalWRAM16",
-                                                                                          "writeInternalWRAM16",
-                                                                                          "writeIODispatch16",
-                                                                                          "writePalette16",
-                                                                                          "writeVRAM16",
-                                                                                          "writeOBJ16",
-                                                                                          "writeROM16",
-                                                                                          "writeSRAM16"
-                                                                                          ),
-                                                              compileMemoryWriteDispatch2(
-                                                                                          "writeUnused",
-                                                                                          "writeUnused",
-                                                                                          "writeUnused",
-                                                                                          "writeIODispatch16",
-                                                                                          "writePalette16",
-                                                                                          "writeVRAM16",
-                                                                                          "writeOBJ16",
-                                                                                          "writeROM16",
-                                                                                          "writeSRAM16"
-                                                                                          )
-                                                              ];
+        compileMemoryWriteDispatch2(
+            'writeUnused',
+            'writeInternalWRAM16',
+            'writeInternalWRAM16',
+            'writeIODispatch16',
+            'writePalette16',
+            'writeVRAM16',
+            'writeOBJ16',
+            'writeROM16',
+            'writeSRAM16'
+        ),
+        compileMemoryWriteDispatch2(
+            'writeUnused',
+            'writeExternalWRAM16',
+            'writeInternalWRAM16',
+            'writeIODispatch16',
+            'writePalette16',
+            'writeVRAM16',
+            'writeOBJ16',
+            'writeROM16',
+            'writeSRAM16'
+        ),
+        compileMemoryWriteDispatch2(
+            'writeUnused',
+            'writeUnused',
+            'writeUnused',
+            'writeIODispatch16',
+            'writePalette16',
+            'writeVRAM16',
+            'writeOBJ16',
+            'writeROM16',
+            'writeSRAM16'
+        ),
+    ];
     //DMA 0-2 Optimized 16-Bit Write Dispatch:
     GameBoyAdvanceMemory.prototype.memoryWriteDMA16Generated = [
-                                                             compileMemoryDMAWriteDispatch(
-                                                                                         "writeUnused",
-                                                                                         "writeInternalWRAM16",
-                                                                                         "writeInternalWRAM16",
-                                                                                         "writeIODispatch16",
-                                                                                         "writePalette16",
-                                                                                         "writeVRAM16",
-                                                                                         "writeOBJ16"
-                                                                                         ),
-                                                             compileMemoryDMAWriteDispatch(
-                                                                                         "writeUnused",
-                                                                                         "writeExternalWRAM16",
-                                                                                         "writeInternalWRAM16",
-                                                                                         "writeIODispatch16",
-                                                                                         "writePalette16",
-                                                                                         "writeVRAM16",
-                                                                                         "writeOBJ16"
-                                                                                         ),
-                                                             compileMemoryDMAWriteDispatch(
-                                                                                         "writeUnused",
-                                                                                         "writeUnused",
-                                                                                         "writeUnused",
-                                                                                         "writeIODispatch16",
-                                                                                         "writePalette16",
-                                                                                         "writeVRAM16",
-                                                                                         "writeOBJ16"
-                                                                                         )
-                                                             ];
+        compileMemoryDMAWriteDispatch(
+            'writeUnused',
+            'writeInternalWRAM16',
+            'writeInternalWRAM16',
+            'writeIODispatch16',
+            'writePalette16',
+            'writeVRAM16',
+            'writeOBJ16'
+        ),
+        compileMemoryDMAWriteDispatch(
+            'writeUnused',
+            'writeExternalWRAM16',
+            'writeInternalWRAM16',
+            'writeIODispatch16',
+            'writePalette16',
+            'writeVRAM16',
+            'writeOBJ16'
+        ),
+        compileMemoryDMAWriteDispatch(
+            'writeUnused',
+            'writeUnused',
+            'writeUnused',
+            'writeIODispatch16',
+            'writePalette16',
+            'writeVRAM16',
+            'writeOBJ16'
+        ),
+    ];
     //DMA 3 Optimized 16-Bit Write Dispatch:
     GameBoyAdvanceMemory.prototype.memoryWriteDMA16FullGenerated = [
-                                                                    compileMemoryDMA3WriteDispatch(
-                                                                                                   "writeUnused",
-                                                                                                   "writeInternalWRAM16",
-                                                                                                   "writeInternalWRAM16",
-                                                                                                   "writeIODispatch16",
-                                                                                                   "writePalette16",
-                                                                                                   "writeVRAM16",
-                                                                                                   "writeOBJ16",
-                                                                                                   "writeROM16DMA"
-                                                                                                   ),
-                                                                    compileMemoryDMA3WriteDispatch(
-                                                                                                   "writeUnused",
-                                                                                                   "writeExternalWRAM16",
-                                                                                                   "writeInternalWRAM16",
-                                                                                                   "writeIODispatch16",
-                                                                                                   "writePalette16",
-                                                                                                   "writeVRAM16",
-                                                                                                   "writeOBJ16",
-                                                                                                   "writeROM16DMA"
-                                                                                                   ),
-                                                                    compileMemoryDMA3WriteDispatch(
-                                                                                                   "writeUnused",
-                                                                                                   "writeUnused",
-                                                                                                   "writeUnused",
-                                                                                                   "writeIODispatch16",
-                                                                                                   "writePalette16",
-                                                                                                   "writeVRAM16",
-                                                                                                   "writeOBJ16",
-                                                                                                   "writeROM16DMA"
-                                                                                                   )
-                                                                    ];
+        compileMemoryDMA3WriteDispatch(
+            'writeUnused',
+            'writeInternalWRAM16',
+            'writeInternalWRAM16',
+            'writeIODispatch16',
+            'writePalette16',
+            'writeVRAM16',
+            'writeOBJ16',
+            'writeROM16DMA'
+        ),
+        compileMemoryDMA3WriteDispatch(
+            'writeUnused',
+            'writeExternalWRAM16',
+            'writeInternalWRAM16',
+            'writeIODispatch16',
+            'writePalette16',
+            'writeVRAM16',
+            'writeOBJ16',
+            'writeROM16DMA'
+        ),
+        compileMemoryDMA3WriteDispatch(
+            'writeUnused',
+            'writeUnused',
+            'writeUnused',
+            'writeIODispatch16',
+            'writePalette16',
+            'writeVRAM16',
+            'writeOBJ16',
+            'writeROM16DMA'
+        ),
+    ];
     //Generic 32-Bit Read Dispatch:
     GameBoyAdvanceMemory.prototype.memoryRead32Generated = [
-                                                              compileMemoryReadDispatch(
-                                                                                         "readUnused32",
-                                                                                         "readInternalWRAM32",
-                                                                                         "readInternalWRAM32",
-                                                                                         "readIODispatch32",
-                                                                                         "readVRAM32Preliminary",
-                                                                                         "readROM32",
-                                                                                         "readROM232",
-                                                                                         "readSRAM32",
-                                                                                         "readBIOS32"
-                                                                                         ),
-                                                              compileMemoryReadDispatch(
-                                                                                         "readUnused32",
-                                                                                         "readExternalWRAM32",
-                                                                                         "readInternalWRAM32",
-                                                                                         "readIODispatch32",
-                                                                                         "readVRAM32Preliminary",
-                                                                                         "readROM32",
-                                                                                         "readROM232",
-                                                                                         "readSRAM32",
-                                                                                         "readBIOS32"
-                                                                                         ),
-                                                              compileMemoryReadDispatch(
-                                                                                         "readUnused32",
-                                                                                         "readUnused32",
-                                                                                         "readUnused32",
-                                                                                         "readIODispatch32",
-                                                                                         "readVRAM32Preliminary",
-                                                                                         "readROM32",
-                                                                                         "readROM232",
-                                                                                         "readSRAM32",
-                                                                                         "readBIOS32"
-                                                                                         )
-                                                              ];
+        compileMemoryReadDispatch(
+            'readUnused32',
+            'readInternalWRAM32',
+            'readInternalWRAM32',
+            'readIODispatch32',
+            'readVRAM32Preliminary',
+            'readROM32',
+            'readROM232',
+            'readSRAM32',
+            'readBIOS32'
+        ),
+        compileMemoryReadDispatch(
+            'readUnused32',
+            'readExternalWRAM32',
+            'readInternalWRAM32',
+            'readIODispatch32',
+            'readVRAM32Preliminary',
+            'readROM32',
+            'readROM232',
+            'readSRAM32',
+            'readBIOS32'
+        ),
+        compileMemoryReadDispatch(
+            'readUnused32',
+            'readUnused32',
+            'readUnused32',
+            'readIODispatch32',
+            'readVRAM32Preliminary',
+            'readROM32',
+            'readROM232',
+            'readSRAM32',
+            'readBIOS32'
+        ),
+    ];
     //DMA 0 Optimized 32-Bit Read Dispatch:
     GameBoyAdvanceMemory.prototype.memoryReadDMA32Generated = [
-                                                               compileMemoryDMA0ReadDispatch(
-                                                                                            "readUnused32DMA",
-                                                                                            "readInternalWRAM32",
-                                                                                            "readInternalWRAM32",
-                                                                                            "readIODispatch32",
-                                                                                            "readVRAM32Preliminary",
-                                                                                            "readBIOS32DMA"
-                                                                                            ),
-                                                               compileMemoryDMA0ReadDispatch(
-                                                                                            "readUnused32DMA",
-                                                                                            "readExternalWRAM32",
-                                                                                            "readInternalWRAM32",
-                                                                                            "readIODispatch32",
-                                                                                            "readVRAM32Preliminary",
-                                                                                            "readBIOS32DMA"
-                                                                                            ),
-                                                               compileMemoryDMA0ReadDispatch(
-                                                                                            "readUnused32DMA",
-                                                                                            "readUnused32DMA",
-                                                                                            "readUnused32DMA",
-                                                                                            "readIODispatch32",
-                                                                                            "readVRAM32Preliminary",
-                                                                                            "readBIOS32DMA"
-                                                                                            )
-                                                               ];
+        compileMemoryDMA0ReadDispatch(
+            'readUnused32DMA',
+            'readInternalWRAM32',
+            'readInternalWRAM32',
+            'readIODispatch32',
+            'readVRAM32Preliminary',
+            'readBIOS32DMA'
+        ),
+        compileMemoryDMA0ReadDispatch(
+            'readUnused32DMA',
+            'readExternalWRAM32',
+            'readInternalWRAM32',
+            'readIODispatch32',
+            'readVRAM32Preliminary',
+            'readBIOS32DMA'
+        ),
+        compileMemoryDMA0ReadDispatch(
+            'readUnused32DMA',
+            'readUnused32DMA',
+            'readUnused32DMA',
+            'readIODispatch32',
+            'readVRAM32Preliminary',
+            'readBIOS32DMA'
+        ),
+    ];
     //DMA 1-3 Optimized 32-Bit Read Dispatch:
     GameBoyAdvanceMemory.prototype.memoryReadDMA32FullGenerated = [
-                                                            compileMemoryDMAReadDispatch(
-                                                                                      "readUnused32DMA",
-                                                                                      "readInternalWRAM32",
-                                                                                      "readInternalWRAM32",
-                                                                                      "readIODispatch32",
-                                                                                      "readVRAM32Preliminary",
-                                                                                      "readROM32",
-                                                                                      "readROM232",
-                                                                                      "readBIOS32DMA"
-                                                                                      ),
-                                                            compileMemoryDMAReadDispatch(
-                                                                                      "readUnused32DMA",
-                                                                                      "readExternalWRAM32",
-                                                                                      "readInternalWRAM32",
-                                                                                      "readIODispatch32",
-                                                                                      "readVRAM32Preliminary",
-                                                                                      "readROM32",
-                                                                                      "readROM232",
-                                                                                      "readBIOS32DMA"
-                                                                                      ),
-                                                            compileMemoryDMAReadDispatch(
-                                                                                      "readUnused32DMA",
-                                                                                      "readUnused32DMA",
-                                                                                      "readUnused32DMA",
-                                                                                      "readIODispatch32",
-                                                                                      "readVRAM32Preliminary",
-                                                                                      "readROM32",
-                                                                                      "readROM232",
-                                                                                      "readBIOS32DMA"
-                                                                                      )
-                                                            ];
+        compileMemoryDMAReadDispatch(
+            'readUnused32DMA',
+            'readInternalWRAM32',
+            'readInternalWRAM32',
+            'readIODispatch32',
+            'readVRAM32Preliminary',
+            'readROM32',
+            'readROM232',
+            'readBIOS32DMA'
+        ),
+        compileMemoryDMAReadDispatch(
+            'readUnused32DMA',
+            'readExternalWRAM32',
+            'readInternalWRAM32',
+            'readIODispatch32',
+            'readVRAM32Preliminary',
+            'readROM32',
+            'readROM232',
+            'readBIOS32DMA'
+        ),
+        compileMemoryDMAReadDispatch(
+            'readUnused32DMA',
+            'readUnused32DMA',
+            'readUnused32DMA',
+            'readIODispatch32',
+            'readVRAM32Preliminary',
+            'readROM32',
+            'readROM232',
+            'readBIOS32DMA'
+        ),
+    ];
     //Generic 32-Bit Instruction Read Dispatch:
     GameBoyAdvanceMemory.prototype.memoryReadCPU32Generated = [
-                                                                 compileMemoryReadDispatch(
-                                                                                            "readUnused32CPU",
-                                                                                            "readInternalWRAM32CPU",
-                                                                                            "readInternalWRAM32CPU",
-                                                                                            "readIODispatch32CPU",
-                                                                                            "readVRAM32CPUPreliminary",
-                                                                                            "readROM32CPU",
-                                                                                            "readROM232CPU",
-                                                                                            "readSRAM32CPU",
-                                                                                            "readBIOS32CPU"
-                                                                                            ),
-                                                                 compileMemoryReadDispatch(
-                                                                                            "readUnused32CPU",
-                                                                                            "readExternalWRAM32CPU",
-                                                                                            "readInternalWRAM32CPU",
-                                                                                            "readIODispatch32CPU",
-                                                                                            "readVRAM32CPUPreliminary",
-                                                                                            "readROM32CPU",
-                                                                                            "readROM232CPU",
-                                                                                            "readSRAM32CPU",
-                                                                                            "readBIOS32CPU"
-                                                                                            ),
-                                                                 compileMemoryReadDispatch(
-                                                                                            "readUnused32CPU",
-                                                                                            "readUnused32CPU",
-                                                                                            "readUnused32CPU",
-                                                                                            "readIODispatch32CPU",
-                                                                                            "readVRAM32CPUPreliminary",
-                                                                                            "readROM32CPU",
-                                                                                            "readROM232CPU",
-                                                                                            "readSRAM32CPU",
-                                                                                            "readBIOS32CPU"
-                                                                                            )
-                                                                 ];
+        compileMemoryReadDispatch(
+            'readUnused32CPU',
+            'readInternalWRAM32CPU',
+            'readInternalWRAM32CPU',
+            'readIODispatch32CPU',
+            'readVRAM32CPUPreliminary',
+            'readROM32CPU',
+            'readROM232CPU',
+            'readSRAM32CPU',
+            'readBIOS32CPU'
+        ),
+        compileMemoryReadDispatch(
+            'readUnused32CPU',
+            'readExternalWRAM32CPU',
+            'readInternalWRAM32CPU',
+            'readIODispatch32CPU',
+            'readVRAM32CPUPreliminary',
+            'readROM32CPU',
+            'readROM232CPU',
+            'readSRAM32CPU',
+            'readBIOS32CPU'
+        ),
+        compileMemoryReadDispatch(
+            'readUnused32CPU',
+            'readUnused32CPU',
+            'readUnused32CPU',
+            'readIODispatch32CPU',
+            'readVRAM32CPUPreliminary',
+            'readROM32CPU',
+            'readROM232CPU',
+            'readSRAM32CPU',
+            'readBIOS32CPU'
+        ),
+    ];
     //Generic 32-Bit Write Dispatch:
     GameBoyAdvanceMemory.prototype.memoryWrite32Generated = [
-                                                              compileMemoryWriteDispatch2(
-                                                                                          "writeUnused",
-                                                                                          "writeInternalWRAM32",
-                                                                                          "writeInternalWRAM32",
-                                                                                          "writeIODispatch32",
-                                                                                          "writePalette32",
-                                                                                          "writeVRAM32",
-                                                                                          "writeOBJ32",
-                                                                                          "writeROM32",
-                                                                                          "writeSRAM32"
-                                                                                          ),
-                                                              compileMemoryWriteDispatch2(
-                                                                                          "writeUnused",
-                                                                                          "writeExternalWRAM32",
-                                                                                          "writeInternalWRAM32",
-                                                                                          "writeIODispatch32",
-                                                                                          "writePalette32",
-                                                                                          "writeVRAM32",
-                                                                                          "writeOBJ32",
-                                                                                          "writeROM32",
-                                                                                          "writeSRAM32"
-                                                                                          ),
-                                                              compileMemoryWriteDispatch2(
-                                                                                          "writeUnused",
-                                                                                          "writeUnused",
-                                                                                          "writeUnused",
-                                                                                          "writeIODispatch32",
-                                                                                          "writePalette32",
-                                                                                          "writeVRAM32",
-                                                                                          "writeOBJ32",
-                                                                                          "writeROM32",
-                                                                                          "writeSRAM32"
-                                                                                          )
-                                                              ];
+        compileMemoryWriteDispatch2(
+            'writeUnused',
+            'writeInternalWRAM32',
+            'writeInternalWRAM32',
+            'writeIODispatch32',
+            'writePalette32',
+            'writeVRAM32',
+            'writeOBJ32',
+            'writeROM32',
+            'writeSRAM32'
+        ),
+        compileMemoryWriteDispatch2(
+            'writeUnused',
+            'writeExternalWRAM32',
+            'writeInternalWRAM32',
+            'writeIODispatch32',
+            'writePalette32',
+            'writeVRAM32',
+            'writeOBJ32',
+            'writeROM32',
+            'writeSRAM32'
+        ),
+        compileMemoryWriteDispatch2(
+            'writeUnused',
+            'writeUnused',
+            'writeUnused',
+            'writeIODispatch32',
+            'writePalette32',
+            'writeVRAM32',
+            'writeOBJ32',
+            'writeROM32',
+            'writeSRAM32'
+        ),
+    ];
     //DMA 0-2 Optimized 32-Bit Write Dispatch:
     GameBoyAdvanceMemory.prototype.memoryWriteDMA32Generated = [
-                                                             compileMemoryDMAWriteDispatch(
-                                                                                         "writeUnused",
-                                                                                         "writeInternalWRAM32",
-                                                                                         "writeInternalWRAM32",
-                                                                                         "writeIODispatch32",
-                                                                                         "writePalette32",
-                                                                                         "writeVRAM32",
-                                                                                         "writeOBJ32"
-                                                                                         ),
-                                                             compileMemoryDMAWriteDispatch(
-                                                                                         "writeUnused",
-                                                                                         "writeExternalWRAM32",
-                                                                                         "writeInternalWRAM32",
-                                                                                         "writeIODispatch32",
-                                                                                         "writePalette32",
-                                                                                         "writeVRAM32",
-                                                                                         "writeOBJ32"
-                                                                                         ),
-                                                             compileMemoryDMAWriteDispatch(
-                                                                                         "writeUnused",
-                                                                                         "writeUnused",
-                                                                                         "writeUnused",
-                                                                                         "writeIODispatch32",
-                                                                                         "writePalette32",
-                                                                                         "writeVRAM32",
-                                                                                         "writeOBJ32"
-                                                                                         )
-                                                             ];
+        compileMemoryDMAWriteDispatch(
+            'writeUnused',
+            'writeInternalWRAM32',
+            'writeInternalWRAM32',
+            'writeIODispatch32',
+            'writePalette32',
+            'writeVRAM32',
+            'writeOBJ32'
+        ),
+        compileMemoryDMAWriteDispatch(
+            'writeUnused',
+            'writeExternalWRAM32',
+            'writeInternalWRAM32',
+            'writeIODispatch32',
+            'writePalette32',
+            'writeVRAM32',
+            'writeOBJ32'
+        ),
+        compileMemoryDMAWriteDispatch(
+            'writeUnused',
+            'writeUnused',
+            'writeUnused',
+            'writeIODispatch32',
+            'writePalette32',
+            'writeVRAM32',
+            'writeOBJ32'
+        ),
+    ];
     //DMA 3 Optimized 32-Bit Write Dispatch:
     GameBoyAdvanceMemory.prototype.memoryWriteDMA32FullGenerated = [
-                                                             compileMemoryDMA3WriteDispatch(
-                                                                                         "writeUnused",
-                                                                                         "writeInternalWRAM32",
-                                                                                         "writeInternalWRAM32",
-                                                                                         "writeIODispatch32",
-                                                                                         "writePalette32",
-                                                                                         "writeVRAM32",
-                                                                                         "writeOBJ32",
-                                                                                         "writeROM32"
-                                                                                         ),
-                                                             compileMemoryDMA3WriteDispatch(
-                                                                                         "writeUnused",
-                                                                                         "writeExternalWRAM32",
-                                                                                         "writeInternalWRAM32",
-                                                                                         "writeIODispatch32",
-                                                                                         "writePalette32",
-                                                                                         "writeVRAM32",
-                                                                                         "writeOBJ32",
-                                                                                         "writeROM32"
-                                                                                         ),
-                                                             compileMemoryDMA3WriteDispatch(
-                                                                                         "writeUnused",
-                                                                                         "writeUnused",
-                                                                                         "writeUnused",
-                                                                                         "writeIODispatch32",
-                                                                                         "writePalette32",
-                                                                                         "writeVRAM32",
-                                                                                         "writeOBJ32",
-                                                                                         "writeROM32"
-                                                                                         )
-                                                             ];
+        compileMemoryDMA3WriteDispatch(
+            'writeUnused',
+            'writeInternalWRAM32',
+            'writeInternalWRAM32',
+            'writeIODispatch32',
+            'writePalette32',
+            'writeVRAM32',
+            'writeOBJ32',
+            'writeROM32'
+        ),
+        compileMemoryDMA3WriteDispatch(
+            'writeUnused',
+            'writeExternalWRAM32',
+            'writeInternalWRAM32',
+            'writeIODispatch32',
+            'writePalette32',
+            'writeVRAM32',
+            'writeOBJ32',
+            'writeROM32'
+        ),
+        compileMemoryDMA3WriteDispatch(
+            'writeUnused',
+            'writeUnused',
+            'writeUnused',
+            'writeIODispatch32',
+            'writePalette32',
+            'writeVRAM32',
+            'writeOBJ32',
+            'writeROM32'
+        ),
+    ];
     //Initialize to default memory map:
     GameBoyAdvanceMemory.prototype.memoryRead8 = GameBoyAdvanceMemory.prototype.memoryRead8Generated[1];
     GameBoyAdvanceMemory.prototype.memoryWrite8 = GameBoyAdvanceMemory.prototype.memoryWrite8Generated[1];

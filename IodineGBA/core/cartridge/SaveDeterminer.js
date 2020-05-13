@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 /*
  Copyright (C) 2012-2015 Grant Galitz
  
@@ -16,11 +16,9 @@ function GameBoyAdvanceSaveDeterminer(saveCore) {
 GameBoyAdvanceSaveDeterminer.prototype.flags = {
     SRAM: 1,
     FLASH: 2,
-    EEPROM: 4
-}
-GameBoyAdvanceSaveDeterminer.prototype.initialize = function () {
-    
-}
+    EEPROM: 4,
+};
+GameBoyAdvanceSaveDeterminer.prototype.initialize = function () {};
 GameBoyAdvanceSaveDeterminer.prototype.load = function (save) {
     this.saves = save;
     var length = save.length | 0;
@@ -37,7 +35,7 @@ GameBoyAdvanceSaveDeterminer.prototype.load = function (save) {
             this.possible = this.flags.FLASH | 0;
     }
     this.checkDetermination();
-}
+};
 GameBoyAdvanceSaveDeterminer.prototype.checkDetermination = function () {
     switch (this.possible) {
         case 0x1:
@@ -49,7 +47,7 @@ GameBoyAdvanceSaveDeterminer.prototype.checkDetermination = function () {
         case 0x4:
             this.saveCore.referenceSave(0x3);
     }
-}
+};
 GameBoyAdvanceSaveDeterminer.prototype.readSRAM = function (address) {
     address = address | 0;
     var data = 0;
@@ -62,22 +60,22 @@ GameBoyAdvanceSaveDeterminer.prototype.readSRAM = function (address) {
         }
     }
     return data | 0;
-}
+};
 GameBoyAdvanceSaveDeterminer.prototype.writeGPIO8 = function (address, data) {
     address = address | 0;
     data = data | 0;
     //GPIO (TODO):
-}
+};
 GameBoyAdvanceSaveDeterminer.prototype.writeGPIO16 = function (address, data) {
     address = address | 0;
     data = data | 0;
     //GPIO (TODO):
-}
+};
 GameBoyAdvanceSaveDeterminer.prototype.writeGPIO32 = function (address, data) {
     address = address | 0;
     data = data | 0;
     //GPIO (TODO):
-}
+};
 GameBoyAdvanceSaveDeterminer.prototype.writeEEPROM16 = function (address, data) {
     address = address | 0;
     data = data | 0;
@@ -87,7 +85,7 @@ GameBoyAdvanceSaveDeterminer.prototype.writeEEPROM16 = function (address, data) 
         this.checkDetermination();
         this.saveCore.writeEEPROM16(address | 0, data | 0);
     }
-}
+};
 GameBoyAdvanceSaveDeterminer.prototype.readEEPROM8 = function (address) {
     address = address | 0;
     var data = 0;
@@ -97,7 +95,7 @@ GameBoyAdvanceSaveDeterminer.prototype.readEEPROM8 = function (address) {
         this.checkDetermination();
         return this.saveCore.readEEPROM8(address | 0) | 0;
     }
-}
+};
 GameBoyAdvanceSaveDeterminer.prototype.readEEPROM16 = function (address) {
     address = address | 0;
     var data = 0;
@@ -107,7 +105,7 @@ GameBoyAdvanceSaveDeterminer.prototype.readEEPROM16 = function (address) {
         this.checkDetermination();
         return this.saveCore.readEEPROM16(address | 0) | 0;
     }
-}
+};
 GameBoyAdvanceSaveDeterminer.prototype.readEEPROM32 = function (address) {
     address = address | 0;
     var data = 0;
@@ -117,7 +115,7 @@ GameBoyAdvanceSaveDeterminer.prototype.readEEPROM32 = function (address) {
         this.checkDetermination();
         return this.saveCore.readEEPROM32(address | 0) | 0;
     }
-}
+};
 GameBoyAdvanceSaveDeterminer.prototype.writeSRAM = function (address, data) {
     address = address | 0;
     data = data | 0;
@@ -126,33 +124,29 @@ GameBoyAdvanceSaveDeterminer.prototype.writeSRAM = function (address, data) {
     if ((this.possible & this.flags.FLASH) == (this.flags.FLASH | 0)) {
         if ((this.possible & this.flags.SRAM) == (this.flags.SRAM | 0)) {
             if ((address | 0) == 0x5555) {
-                if ((data | 0) == 0xAA) {
+                if ((data | 0) == 0xaa) {
                     //FLASH
                     this.possible = this.flags.FLASH | 0;
-                }
-                else {
+                } else {
                     //SRAM
                     this.possible = this.flags.SRAM | 0;
                 }
             }
-        }
-        else {
+        } else {
             if ((address | 0) == 0x5555) {
-                if ((data | 0) == 0xAA) {
+                if ((data | 0) == 0xaa) {
                     //FLASH
                     this.possible = this.flags.FLASH | 0;
-                }
-                else {
+                } else {
                     //Is not Flash:
                     this.possible &= ~this.flags.FLASH;
                 }
             }
         }
-    }
-    else if ((this.possible & this.flags.SRAM) == (this.flags.SRAM | 0)) {
+    } else if ((this.possible & this.flags.SRAM) == (this.flags.SRAM | 0)) {
         //SRAM
         this.possible = this.flags.SRAM | 0;
     }
     this.checkDetermination();
     this.saveCore.writeSRAMIfDefined(address | 0, data | 0);
-}
+};

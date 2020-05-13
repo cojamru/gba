@@ -2,8 +2,8 @@
 <html>
     <head>
         <title>GBA Emulator</title>
-        <meta charset="UTF-8">
-		<meta name="viewport" content="initial-scale=1, maximum-scale=1">
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="initial-scale=1, maximum-scale=1" />
         <!--Required Scripts-->
         <script src="IodineGBA/includes/TypedArrayShim.js"></script>
         <script src="IodineGBA/core/Cartridge.js"></script>
@@ -64,7 +64,7 @@
         <script src="user_scripts/XAudioJS/swfobject.js"></script>
         <script src="user_scripts/XAudioJS/resampler.js"></script>
         <script src="user_scripts/XAudioJS/XAudioServer.js"></script>
-        <link rel="stylesheet" href="user_css/main.css">
+        <link rel="stylesheet" href="user_css/main.css" />
     </head>
     <body>
         <div id="container">
@@ -73,8 +73,8 @@
                     <li>
                         File
                         <ul>
-                            <li><span>BIOS: </span> <input type="file" id="bios_load" class="files"></li>
-                            <li><span>Game: </span> <input type="file" id="rom_load" class="files"></li>
+                            <li><span>BIOS: </span> <input type="file" id="bios_load" class="files" /></li>
+                            <li><span>Game: </span> <input type="file" id="rom_load" class="files" /></li>
                         </ul>
                     </li>
                     <li id="play" class="show">Play</li>
@@ -83,24 +83,12 @@
                     <li>
                         Settings
                         <ul>
-                            <li>
-                                <input type="checkbox" id="skip_boot"> Skip Boot Intro
-                            </li>
-                            <li>
-                                <input type="checkbox" id="toggleSmoothScaling" checked="checked"> Smooth Scaling
-                            </li>
-                            <li>
-                                <input type="checkbox" id="toggleDynamicSpeed"> Dynamic Speed
-                            </li>
-                            <li>
-                                <input type="checkbox" id="offthread-cpu" checked="checked"> CPU off-thread
-                            </li>
-                            <li>
-                                <input type="checkbox" id="offthread-gpu" checked="checked"> GPU off-thread
-                            </li>
-                            <li>
-                                <input type="checkbox" id="sound"> Sound
-                            </li>
+                            <li><input type="checkbox" id="skip_boot" /> Skip Boot Intro</li>
+                            <li><input type="checkbox" id="toggleSmoothScaling" checked="checked" /> Smooth Scaling</li>
+                            <li><input type="checkbox" id="toggleDynamicSpeed" /> Dynamic Speed</li>
+                            <li><input type="checkbox" id="offthread-cpu" checked="checked" /> CPU off-thread</li>
+                            <li><input type="checkbox" id="offthread-gpu" checked="checked" /> GPU off-thread</li>
+                            <li><input type="checkbox" id="sound" /> Sound</li>
                             <li>
                                 GBA Bindings
                                 <ul>
@@ -171,21 +159,17 @@
                         Volume
                         <ul>
                             <li>
-                                <input type="range" id="volume">
+                                <input type="range" id="volume" />
                             </li>
                         </ul>
                     </li>
                     <li id="saves_menu">
                         Saves
                         <ul id="saves_menu_container">
-                            <li>
-                                <span>Import:</span><input type="file" id="import" class="files">
-                            </li>
+                            <li><span>Import:</span><input type="file" id="import" class="files" /></li>
                             <li id="existing_saves">
                                 <span>Existing Saves</span>
-                                <ul id="existing_saves_list">
-
-                                </ul>
+                                <ul id="existing_saves_list"></ul>
                             </li>
                             <li>
                                 <a href="./" id="export" target="_new">Export All Saves</a>
@@ -197,7 +181,7 @@
                         <span id="speed">Speed</span>
                         <ul>
                             <li>
-                                <input type="range" id="speedset">
+                                <input type="range" id="speedset" />
                             </li>
                         </ul>
                     </li>
@@ -208,9 +192,9 @@
             </div>
             <div class="touch-controls">
                 <div class="touch-dpad">
-                    <button id="touch-up">↑</button><br>
+                    <button id="touch-up">↑</button><br />
                     <button id="touch-left">←</button>
-                    <button id="touch-right">→</button><br>
+                    <button id="touch-right">→</button><br />
                     <button id="touch-down">↓</button>
                 </div>
                 <div class="touch-buttons">
@@ -219,7 +203,7 @@
                 </div>
                 <div class="touch-buttons">
                     <button id="touch-a">A</button>
-                    <button id="touch-b">B</button><br>
+                    <button id="touch-b">B</button><br />
                     <button id="touch-l">L</button>
                     <button id="touch-r">R</button>
                 </div>

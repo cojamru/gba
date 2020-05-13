@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 /*
  Copyright (C) 2012-2015 Grant Galitz
  
@@ -31,8 +31,8 @@ if (__VIEWS_SUPPORTED__) {
         this.doMosaic = 0;
         this.priorityPreprocess(0);
         this.offsetReferenceCounters();
-    }
-    if (typeof Math.imul == "function") {
+    };
+    if (typeof Math.imul == 'function') {
         //Math.imul found, insert the optimized path in:
         GameBoyAdvanceAffineBGRenderer.prototype.renderScanLine2M = function (line) {
             line = line | 0;
@@ -44,7 +44,11 @@ if (__VIEWS_SUPPORTED__) {
                 x = ((x | 0) - Math.imul(this.BGdmx | 0, mosaicY | 0)) | 0;
                 y = ((y | 0) - Math.imul(this.BGdmy | 0, mosaicY | 0)) | 0;
             }
-            for (var position = 0; (position | 0) < 240; position = ((position | 0) + 1) | 0, x = ((x | 0) + (this.BGdx | 0)) | 0, y = ((y | 0) + (this.BGdy | 0)) | 0) {
+            for (
+                var position = 0;
+                (position | 0) < 240;
+                position = ((position | 0) + 1) | 0, x = ((x | 0) + (this.BGdx | 0)) | 0, y = ((y | 0) + (this.BGdy | 0)) | 0
+            ) {
                 //Fetch pixel:
                 this.scratchBuffer[position | 0] = this.priorityFlag | this.bg2MatrixRenderer.fetchPixel(x >> 8, y >> 8);
             }
@@ -52,7 +56,7 @@ if (__VIEWS_SUPPORTED__) {
                 //Pixelize the line horizontally:
                 this.gfx.mosaicRenderer.renderMosaicHorizontal(this.offset | 0);
             }
-        }
+        };
         GameBoyAdvanceAffineBGRenderer.prototype.renderScanLine3M = function (line) {
             line = line | 0;
             var x = this.pb | 0;
@@ -63,7 +67,11 @@ if (__VIEWS_SUPPORTED__) {
                 x = ((x | 0) - Math.imul(this.BGdmx | 0, mosaicY | 0)) | 0;
                 y = ((y | 0) - Math.imul(this.BGdmy | 0, mosaicY | 0)) | 0;
             }
-            for (var position = 0; (position | 0) < 240; position = ((position | 0) + 1) | 0, x = ((x | 0) + (this.BGdx | 0)) | 0, y = ((y | 0) + (this.BGdy | 0)) | 0) {
+            for (
+                var position = 0;
+                (position | 0) < 240;
+                position = ((position | 0) + 1) | 0, x = ((x | 0) + (this.BGdx | 0)) | 0, y = ((y | 0) + (this.BGdy | 0)) | 0
+            ) {
                 //Fetch pixel:
                 this.scratchBuffer[position | 0] = this.priorityFlag | this.bg3MatrixRenderer.fetchPixel(x >> 8, y >> 8);
             }
@@ -71,7 +79,7 @@ if (__VIEWS_SUPPORTED__) {
                 //Pixelize the line horizontally:
                 this.gfx.mosaicRenderer.renderMosaicHorizontal(this.offset | 0);
             }
-        }
+        };
         GameBoyAdvanceAffineBGRenderer.prototype.renderScanLine2F = function (line) {
             line = line | 0;
             var x = this.pb | 0;
@@ -82,7 +90,11 @@ if (__VIEWS_SUPPORTED__) {
                 x = ((x | 0) - Math.imul(this.BGdmx | 0, mosaicY | 0)) | 0;
                 y = ((y | 0) - Math.imul(this.BGdmy | 0, mosaicY | 0)) | 0;
             }
-            for (var position = 0; (position | 0) < 240; position = ((position | 0) + 1) | 0, x = ((x | 0) + (this.BGdx | 0)) | 0, y = ((y | 0) + (this.BGdy | 0)) | 0) {
+            for (
+                var position = 0;
+                (position | 0) < 240;
+                position = ((position | 0) + 1) | 0, x = ((x | 0) + (this.BGdx | 0)) | 0, y = ((y | 0) + (this.BGdy | 0)) | 0
+            ) {
                 //Fetch pixel:
                 this.scratchBuffer[position | 0] = this.priorityFlag | this.bg2FrameBufferRenderer.fetchPixel(x >> 8, y >> 8);
             }
@@ -90,14 +102,13 @@ if (__VIEWS_SUPPORTED__) {
                 //Pixelize the line horizontally:
                 this.gfx.mosaicRenderer.renderMosaicHorizontal(this.offset | 0);
             }
-        }
+        };
         GameBoyAdvanceAffineBGRenderer.prototype.offsetReferenceCounters = function () {
             var end = this.gfx.lastUnrenderedLine | 0;
             this.pb = Math.imul(((this.pb | 0) + (this.BGdmx | 0)) | 0, end | 0) | 0;
             this.pd = Math.imul(((this.pd | 0) + (this.BGdmy | 0)) | 0, end | 0) | 0;
-        }
-    }
-    else {
+        };
+    } else {
         //Math.imul not found, use the compatibility method:
         GameBoyAdvanceAffineBGRenderer.prototype.renderScanLine2M = function (line) {
             var x = this.pb;
@@ -116,7 +127,7 @@ if (__VIEWS_SUPPORTED__) {
                 //Pixelize the line horizontally:
                 this.gfx.mosaicRenderer.renderMosaicHorizontal(this.offset);
             }
-        }
+        };
         GameBoyAdvanceAffineBGRenderer.prototype.renderScanLine3M = function (line) {
             var x = this.pb;
             var y = this.pd;
@@ -134,7 +145,7 @@ if (__VIEWS_SUPPORTED__) {
                 //Pixelize the line horizontally:
                 this.gfx.mosaicRenderer.renderMosaicHorizontal(this.offset);
             }
-        }
+        };
         GameBoyAdvanceAffineBGRenderer.prototype.renderScanLine2F = function (line) {
             var x = this.pb;
             var y = this.pd;
@@ -152,15 +163,14 @@ if (__VIEWS_SUPPORTED__) {
                 //Pixelize the line horizontally:
                 this.gfx.mosaicRenderer.renderMosaicHorizontal(this.offset);
             }
-        }
+        };
         GameBoyAdvanceAffineBGRenderer.prototype.offsetReferenceCounters = function () {
             var end = this.gfx.lastUnrenderedLine | 0;
             this.pb = (((this.pb | 0) + (this.BGdmx | 0)) * (end | 0)) | 0;
             this.pd = (((this.pd | 0) + (this.BGdmy | 0)) * (end | 0)) | 0;
-        }
+        };
     }
-}
-else {
+} else {
     GameBoyAdvanceAffineBGRenderer.prototype.initialize = function () {
         this.bg2MatrixRenderer = this.gfx.bg2MatrixRenderer;
         this.bg3MatrixRenderer = this.gfx.bg3MatrixRenderer;
@@ -177,7 +187,7 @@ else {
         this.doMosaic = 0;
         this.priorityPreprocess(0);
         this.offsetReferenceCounters();
-    }
+    };
     GameBoyAdvanceAffineBGRenderer.prototype.renderScanLine2M = function (line) {
         var x = this.pb;
         var y = this.pd;
@@ -195,7 +205,7 @@ else {
             //Pixelize the line horizontally:
             this.gfx.mosaicRenderer.renderMosaicHorizontal(this.offset);
         }
-    }
+    };
     GameBoyAdvanceAffineBGRenderer.prototype.renderScanLine3M = function (line) {
         var x = this.pb;
         var y = this.pd;
@@ -213,7 +223,7 @@ else {
             //Pixelize the line horizontally:
             this.gfx.mosaicRenderer.renderMosaicHorizontal(this.offset);
         }
-    }
+    };
     GameBoyAdvanceAffineBGRenderer.prototype.renderScanLine2F = function (line) {
         var x = this.pb;
         var y = this.pd;
@@ -231,162 +241,162 @@ else {
             //Pixelize the line horizontally:
             this.gfx.mosaicRenderer.renderMosaicHorizontal(this.offset);
         }
-    }
+    };
     GameBoyAdvanceAffineBGRenderer.prototype.offsetReferenceCounters = function () {
         var end = this.gfx.lastUnrenderedLine | 0;
         this.pb = (((this.pb | 0) + (this.BGdmx | 0)) * (end | 0)) | 0;
         this.pd = (((this.pd | 0) + (this.BGdmy | 0)) * (end | 0)) | 0;
-    }
+    };
 }
 GameBoyAdvanceAffineBGRenderer.prototype.incrementReferenceCounters = function () {
     this.pb = ((this.pb | 0) + (this.BGdmx | 0)) | 0;
     this.pd = ((this.pd | 0) + (this.BGdmy | 0)) | 0;
-}
+};
 GameBoyAdvanceAffineBGRenderer.prototype.resetReferenceCounters = function () {
     this.pb = this.BGReferenceX | 0;
     this.pd = this.BGReferenceY | 0;
-}
+};
 GameBoyAdvanceAffineBGRenderer.prototype.setMosaicEnable = function (doMosaic) {
     doMosaic = doMosaic | 0;
     this.doMosaic = doMosaic | 0;
-}
+};
 GameBoyAdvanceAffineBGRenderer.prototype.priorityPreprocess = function (BGPriority) {
     BGPriority = BGPriority | 0;
     this.priorityFlag = (BGPriority << 23) | (1 << (this.BGLayer | 0x10));
-}
+};
 GameBoyAdvanceAffineBGRenderer.prototype.writeBGPA8_0 = function (data) {
     data = data | 0;
-    this.BGdx = (this.BGdx & 0xFFFFFF00) | data;
-}
+    this.BGdx = (this.BGdx & 0xffffff00) | data;
+};
 GameBoyAdvanceAffineBGRenderer.prototype.writeBGPA8_1 = function (data) {
     data = data | 0;
     data = (data << 24) >> 16;
-    this.BGdx = data | (this.BGdx & 0xFF);
-}
+    this.BGdx = data | (this.BGdx & 0xff);
+};
 GameBoyAdvanceAffineBGRenderer.prototype.writeBGPA16 = function (data) {
     data = data | 0;
     this.BGdx = (data << 16) >> 16;
-}
+};
 GameBoyAdvanceAffineBGRenderer.prototype.writeBGPB8_0 = function (data) {
     data = data | 0;
-    this.BGdmx = (this.BGdmx & 0xFFFFFF00) | data;
-}
+    this.BGdmx = (this.BGdmx & 0xffffff00) | data;
+};
 GameBoyAdvanceAffineBGRenderer.prototype.writeBGPB8_1 = function (data) {
     data = data | 0;
     data = (data << 24) >> 16;
-    this.BGdmx = data | (this.BGdmx & 0xFF);
-}
+    this.BGdmx = data | (this.BGdmx & 0xff);
+};
 GameBoyAdvanceAffineBGRenderer.prototype.writeBGPB16 = function (data) {
     data = data | 0;
     this.BGdmx = (data << 16) >> 16;
-}
+};
 GameBoyAdvanceAffineBGRenderer.prototype.writeBGPAB32 = function (data) {
     data = data | 0;
     this.BGdx = (data << 16) >> 16;
     this.BGdmx = data >> 16;
-}
+};
 GameBoyAdvanceAffineBGRenderer.prototype.writeBGPC8_0 = function (data) {
     data = data | 0;
-    this.BGdy = (this.BGdy & 0xFFFFFF00) | data;
-}
+    this.BGdy = (this.BGdy & 0xffffff00) | data;
+};
 GameBoyAdvanceAffineBGRenderer.prototype.writeBGPC8_1 = function (data) {
     data = data | 0;
     data = (data << 24) >> 16;
-    this.BGdy = data | (this.BGdy & 0xFF);
-}
+    this.BGdy = data | (this.BGdy & 0xff);
+};
 GameBoyAdvanceAffineBGRenderer.prototype.writeBGPC16 = function (data) {
     data = data | 0;
     this.BGdy = (data << 16) >> 16;
-}
+};
 GameBoyAdvanceAffineBGRenderer.prototype.writeBGPD8_0 = function (data) {
     data = data | 0;
-    this.BGdmy = (this.BGdmy & 0xFFFFFF00) | data;
-}
+    this.BGdmy = (this.BGdmy & 0xffffff00) | data;
+};
 GameBoyAdvanceAffineBGRenderer.prototype.writeBGPD8_1 = function (data) {
     data = data | 0;
     data = (data << 24) >> 16;
-    this.BGdmy = data | (this.BGdmy & 0xFF);
-}
+    this.BGdmy = data | (this.BGdmy & 0xff);
+};
 GameBoyAdvanceAffineBGRenderer.prototype.writeBGPD16 = function (data) {
     data = data | 0;
     this.BGdmy = (data << 16) >> 16;
-}
+};
 GameBoyAdvanceAffineBGRenderer.prototype.writeBGPCD32 = function (data) {
     data = data | 0;
     this.BGdy = (data << 16) >> 16;
     this.BGdmy = data >> 16;
-}
+};
 GameBoyAdvanceAffineBGRenderer.prototype.writeBGX8_0 = function (data) {
     data = data | 0;
-    this.BGReferenceX = (this.BGReferenceX & 0xFFFFFF00) | data;
+    this.BGReferenceX = (this.BGReferenceX & 0xffffff00) | data;
     //Writing to the x reference doesn't reset the counters during draw!
-}
+};
 GameBoyAdvanceAffineBGRenderer.prototype.writeBGX8_1 = function (data) {
     data = data | 0;
-    this.BGReferenceX = (data << 8) | (this.BGReferenceX & 0xFFFF00FF);
+    this.BGReferenceX = (data << 8) | (this.BGReferenceX & 0xffff00ff);
     //Writing to the x reference doesn't reset the counters during draw!
-}
+};
 GameBoyAdvanceAffineBGRenderer.prototype.writeBGX8_2 = function (data) {
     data = data | 0;
-    this.BGReferenceX = (data << 16) | (this.BGReferenceX & 0xFF00FFFF);
+    this.BGReferenceX = (data << 16) | (this.BGReferenceX & 0xff00ffff);
     //Writing to the x reference doesn't reset the counters during draw!
-}
+};
 GameBoyAdvanceAffineBGRenderer.prototype.writeBGX8_3 = function (data) {
     data = data | 0;
     data = (data << 28) >> 4;
-    this.BGReferenceX = data | (this.BGReferenceX & 0xFFFFFF);
+    this.BGReferenceX = data | (this.BGReferenceX & 0xffffff);
     //Writing to the x reference doesn't reset the counters during draw!
-}
+};
 GameBoyAdvanceAffineBGRenderer.prototype.writeBGX16_0 = function (data) {
     data = data | 0;
-    this.BGReferenceX = (this.BGReferenceX & 0xFFFF0000) | data;
+    this.BGReferenceX = (this.BGReferenceX & 0xffff0000) | data;
     //Writing to the x reference doesn't reset the counters during draw!
-}
+};
 GameBoyAdvanceAffineBGRenderer.prototype.writeBGX16_1 = function (data) {
     data = data | 0;
     data = (data << 20) >> 4;
-    this.BGReferenceX = (this.BGReferenceX & 0xFFFF) | data;
+    this.BGReferenceX = (this.BGReferenceX & 0xffff) | data;
     //Writing to the x reference doesn't reset the counters during draw!
-}
+};
 GameBoyAdvanceAffineBGRenderer.prototype.writeBGX32 = function (data) {
     data = data | 0;
     this.BGReferenceX = (data << 4) >> 4;
     //Writing to the x reference doesn't reset the counters during draw!
-}
+};
 GameBoyAdvanceAffineBGRenderer.prototype.writeBGY8_0 = function (data) {
     data = data | 0;
-    this.BGReferenceY = (this.BGReferenceY & 0xFFFFFF00) | data;
+    this.BGReferenceY = (this.BGReferenceY & 0xffffff00) | data;
     this.resetReferenceCounters();
-}
+};
 GameBoyAdvanceAffineBGRenderer.prototype.writeBGY8_1 = function (data) {
     data = data | 0;
-    this.BGReferenceY = (data << 8) | (this.BGReferenceY & 0xFFFF00FF);
+    this.BGReferenceY = (data << 8) | (this.BGReferenceY & 0xffff00ff);
     this.resetReferenceCounters();
-}
+};
 GameBoyAdvanceAffineBGRenderer.prototype.writeBGY8_2 = function (data) {
     data = data | 0;
-    this.BGReferenceY = (data << 16) | (this.BGReferenceY & 0xFF00FFFF);
+    this.BGReferenceY = (data << 16) | (this.BGReferenceY & 0xff00ffff);
     this.resetReferenceCounters();
-}
+};
 GameBoyAdvanceAffineBGRenderer.prototype.writeBGY8_3 = function (data) {
     data = data | 0;
     data = (data << 28) >> 4;
-    this.BGReferenceY = data | (this.BGReferenceY & 0xFFFFFF);
+    this.BGReferenceY = data | (this.BGReferenceY & 0xffffff);
     this.resetReferenceCounters();
-}
+};
 GameBoyAdvanceAffineBGRenderer.prototype.writeBGY16_0 = function (data) {
     data = data | 0;
-    this.BGReferenceY = (this.BGReferenceY & 0xFFFF0000) | data;
+    this.BGReferenceY = (this.BGReferenceY & 0xffff0000) | data;
     this.resetReferenceCounters();
-}
+};
 GameBoyAdvanceAffineBGRenderer.prototype.writeBGY16_1 = function (data) {
     data = data | 0;
     data = (data << 20) >> 4;
-    this.BGReferenceY = (this.BGReferenceY & 0xFFFF) | data;
+    this.BGReferenceY = (this.BGReferenceY & 0xffff) | data;
     this.resetReferenceCounters();
-}
+};
 GameBoyAdvanceAffineBGRenderer.prototype.writeBGY32 = function (data) {
     data = data | 0;
     this.BGReferenceY = (data << 4) >> 4;
     this.resetReferenceCounters();
-}
+};

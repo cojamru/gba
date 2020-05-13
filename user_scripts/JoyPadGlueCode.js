@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 /*
  Copyright (C) 2012-2016 Grant Galitz
 
@@ -48,8 +48,7 @@ function keyUpPreprocess(e) {
             //Check for GBA binding:
             keyUpGBA(keyCode);
         }
-    }
-    else {
+    } else {
         //Map a key binding:
         IodineGUI.toMap[IodineGUI.toMapIndice | 0] = keyCode | 0;
         IodineGUI.toMap = null;
@@ -85,31 +84,24 @@ function keyboardEmulatorControl(keyCode) {
     }
 }
 function toggleFullScreen() {
-    if (!document.fullscreenElement && !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement ) {
-            if (document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen();
-            }
-            else if (document.documentElement.msRequestFullscreen) {
-                document.documentElement.msRequestFullscreen();
-            }
-            else if (document.documentElement.mozRequestFullScreen) {
-                document.documentElement.mozRequestFullScreen();
-            }
-            else if (document.documentElement.webkitRequestFullscreen) {
-                document.documentElement.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
-            }
-    }
-    else {
+    if (!document.fullscreenElement && !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
+        if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen();
+        } else if (document.documentElement.msRequestFullscreen) {
+            document.documentElement.msRequestFullscreen();
+        } else if (document.documentElement.mozRequestFullScreen) {
+            document.documentElement.mozRequestFullScreen();
+        } else if (document.documentElement.webkitRequestFullscreen) {
+            document.documentElement.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
+        }
+    } else {
         if (document.exitFullscreen) {
             document.exitFullscreen();
-        }
-        else if (document.msExitFullscreen) {
+        } else if (document.msExitFullscreen) {
             document.msExitFullscreen();
-        }
-        else if (document.mozCancelFullScreen) {
+        } else if (document.mozCancelFullScreen) {
             document.mozCancelFullScreen();
-        }
-        else if (document.webkitExitFullscreen) {
+        } else if (document.webkitExitFullscreen) {
             document.webkitExitFullscreen();
         }
     }
@@ -117,8 +109,7 @@ function toggleFullScreen() {
 function togglePlayState() {
     if (IodineGUI.isPlaying) {
         IodineGUI.Iodine.pause();
-    }
-    else {
+    } else {
         IodineGUI.Iodine.play();
     }
 }
