@@ -106,8 +106,6 @@ const loadConfig = async configURL => {
 const gamesListItem = document.querySelector('#games');
 const gamesList = gamesListItem.querySelector('#games_list');
 
-console.log(gamesList);
-
 const parseConfig = data => {
     if (data.bios && data.games) {
         downloadBIOS(data.bios);
@@ -121,17 +119,18 @@ const parseConfig = data => {
         if (!gameKey && location.hash.substr(1)) {
             gameKey = location.hash.substr(1);
         } else {
-            gameKey = prompt('Please enter the game key. You can find it in the configuration file');
+            gameKey = prompt('Please enter the game key. You can find it in the configuration file', 'zelda_past');
         }
-
-        console.log(gameKey);
 
         data.games.forEach(game => {
             let gameItem = document.createElement('li');
             let gameItemBtn = document.createElement('button');
 
             gameItemBtn.innerText = game.title;
-            gameItemBtn.onclick = () => downloadROM(game.path, game.title);
+            gameItemBtn.onclick = () => {
+                downloadROM(game.path, game.title);
+                history.pushState(null, null, '#' + game.key);
+            };
 
             gameItem.appendChild(gameItemBtn);
             gamesList.appendChild(gameItem);
@@ -168,11 +167,11 @@ window.onload = function () {
     //Register GUI settings.
     registerGUISettings();
 
-    if (location.hash.substr(1)) {
-        loadConfig(DEFAULT_CONFIG).then(data => parseConfig(data));
-    } else {
+    if (location.search.substr(1) === 'custom-config') {
         let configURL = prompt('Please enter URL of the configuration file', DEFAULT_CONFIG);
         loadConfig(configURL).then(data => parseConfig(data));
+    } else {
+        loadConfig(DEFAULT_CONFIG).then(data => parseConfig(data));
     }
 };
 function downloadBIOS(BIOS_URL) {
