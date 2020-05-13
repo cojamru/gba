@@ -3,9 +3,9 @@
     "version": "1.0.0",
     "description": "",
     "repository": "github:cojamru/gba",
-    "author": "Grant Galitz <grantgalitz@gmail.com>",
+    "author": "Grant Galitz <grantgalitz@gmail.com> (https://github.com/jsemu2)",
     "contributors": [
-        "jsemu2 (https://github.com/jsemu2)",
+        "jsemu (https://github.com/jsemu2)",
         "Dmitry <dmitry@cojam.ru> (https://e965.ru)",
         "bbbbbr (https://github.com/bbbbbr)"
     ],
