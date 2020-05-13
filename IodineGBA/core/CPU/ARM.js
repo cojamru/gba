@@ -8,2686 +8,2685 @@
 
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-function ARMInstructionSet(CPUCore) {
-    this.CPUCore = CPUCore;
-    this.initialize();
-}
-ARMInstructionSet.prototype.initialize = function () {
-    this.wait = this.CPUCore.wait;
-    this.registers = this.CPUCore.registers;
-    this.registersUSR = this.CPUCore.registersUSR;
-    this.branchFlags = this.CPUCore.branchFlags;
-    this.fetch = 0;
-    this.decode = 0;
-    this.execute = 0;
-    this.memory = this.CPUCore.memory;
-};
-ARMInstructionSet.prototype.executeIteration = function () {
-    //Push the new fetch access:
-    this.fetch = this.memory.memoryReadCPU32(this.readPC() | 0) | 0;
-    //Execute Conditional Instruction:
-    this.executeConditionalCode();
-    //Update the pipelining state:
-    this.execute = this.decode | 0;
-    this.decode = this.fetch | 0;
-};
-ARMInstructionSet.prototype.executeConditionalCode = function () {
-    //LSB of condition code is used to reverse the test logic:
-    if (((this.execute << 3) ^ this.branchFlags.checkConditionalCode(this.execute | 0)) >= 0) {
-        //Passed the condition code test, so execute:
-        this.executeDecoded();
-    } else {
-        //Increment the program counter if we failed the test:
+
+class ARMInstructionSet {
+    constructor(CPUCore) {
+        this.CPUCore = CPUCore;
+        this.initialize();
+    }
+    initialize() {
+        this.wait = this.CPUCore.wait;
+        this.registers = this.CPUCore.registers;
+        this.registersUSR = this.CPUCore.registersUSR;
+        this.branchFlags = this.CPUCore.branchFlags;
+        this.fetch = 0;
+        this.decode = 0;
+        this.execute = 0;
+        this.memory = this.CPUCore.memory;
+    }
+    executeIteration() {
+        //Push the new fetch access:
+        this.fetch = this.memory.memoryReadCPU32(this.readPC() | 0) | 0;
+        //Execute Conditional Instruction:
+        this.executeConditionalCode();
+        //Update the pipelining state:
+        this.execute = this.decode | 0;
+        this.decode = this.fetch | 0;
+    }
+    executeConditionalCode() {
+        //LSB of condition code is used to reverse the test logic:
+        if (((this.execute << 3) ^ this.branchFlags.checkConditionalCode(this.execute | 0)) >= 0) {
+            //Passed the condition code test, so execute:
+            this.executeDecoded();
+        } else {
+            //Increment the program counter if we failed the test:
+            this.incrementProgramCounter();
+        }
+    }
+    executeBubble() {
+        //Push the new fetch access:
+        this.fetch = this.memory.memoryReadCPU32(this.readPC() | 0) | 0;
+        //Update the Program Counter:
+        this.incrementProgramCounter();
+        //Update the pipelining state:
+        this.execute = this.decode | 0;
+        this.decode = this.fetch | 0;
+    }
+    incrementProgramCounter() {
+        //Increment The Program Counter:
+        this.registers[15] = ((this.registers[15] | 0) + 4) | 0;
+    }
+    getLR() {
+        return ((this.readPC() | 0) - 4) | 0;
+    }
+    getIRQLR() {
+        return this.getLR() | 0;
+    }
+    getCurrentFetchValue() {
+        return this.fetch | 0;
+    }
+    getSWICode() {
+        return (this.execute >> 16) & 0xff;
+    }
+    getPopCount() {
+        var temp = this.execute & 0xffff;
+
+        temp = ((temp | 0) - ((temp >> 1) & 0x5555)) | 0;
+        temp = ((temp & 0x3333) + ((temp >> 2) & 0x3333)) | 0;
+        temp = (((temp | 0) + (temp >> 4)) & 0xf0f) | 0;
+
+        //Math.imul found, insert the optimized path in:
+        if (typeof Math.imul == 'function') {
+            temp = Math.imul(temp | 0, 0x1010101) >> 24;
+        } else {
+            //Math.imul not found, use the compatibility method:
+            temp = (temp * 0x1010101) >> 24;
+        }
+
+        return temp | 0;
+    }
+    getNegativeOffsetStartAddress(currentAddress) {
+        //Used for LDMD/STMD:
+        currentAddress = currentAddress | 0;
+        var offset = this.getPopCount() << 2;
+        currentAddress = ((currentAddress | 0) - (offset | 0)) | 0;
+        return currentAddress | 0;
+    }
+    getPositiveOffsetStartAddress(currentAddress) {
+        //Used for LDMD/STMD:
+        currentAddress = currentAddress | 0;
+        var offset = this.getPopCount() << 2;
+        currentAddress = ((currentAddress | 0) + (offset | 0)) | 0;
+        return currentAddress | 0;
+    }
+    writeRegister(address, data) {
+        //Unguarded non-pc register write:
+        address = address | 0;
+        data = data | 0;
+        this.registers[address & 0xf] = data | 0;
+    }
+    writeUserRegister(address, data) {
+        //Unguarded non-pc user mode register write:
+        address = address | 0;
+        data = data | 0;
+        this.registersUSR[address & 0x7] = data | 0;
+    }
+    guardRegisterWrite(address, data) {
+        //Guarded register write:
+        address = address | 0;
+        data = data | 0;
+        if ((address | 0) < 0xf) {
+            //Non-PC Write:
+            this.writeRegister(address | 0, data | 0);
+        } else {
+            //We performed a branch:
+            this.CPUCore.branch(data & -4);
+        }
+    }
+    multiplyGuard12OffsetRegisterWrite(data) {
+        //Writes to R15 ignored in the multiply instruction!
+        data = data | 0;
+        var address = (this.execute >> 0xc) & 0xf;
+        if ((address | 0) != 0xf) {
+            this.writeRegister(address | 0, data | 0);
+        }
+    }
+    multiplyGuard16OffsetRegisterWrite(data) {
+        //Writes to R15 ignored in the multiply instruction!
+        data = data | 0;
+        var address = (this.execute >> 0x10) & 0xf;
+        this.incrementProgramCounter();
+        if ((address | 0) != 0xf) {
+            this.writeRegister(address | 0, data | 0);
+        }
+    }
+    performMUL32() {
+        var result = 0;
+        if (((this.execute >> 16) & 0xf) != (this.execute & 0xf)) {
+            /*
+             http://www.chiark.greenend.org.uk/~theom/riscos/docs/ultimate/a252armc.txt
+
+             Due to the way that Booth's algorithm has been implemented, certain
+             combinations of operand registers should be avoided. (The assembler will
+             issue a warning if these restrictions are overlooked.)
+             The destination register (Rd) should not be the same as the Rm operand
+             register, as Rd is used to hold intermediate values and Rm is used
+             repeatedly during the multiply. A MUL will give a zero result if Rm=Rd, and
+             a MLA will give a meaningless result.
+             */
+            result = this.CPUCore.performMUL32(this.read0OffsetRegister() | 0, this.read8OffsetRegister() | 0) | 0;
+        }
+        return result | 0;
+    }
+    performMUL32MLA() {
+        var result = 0;
+        if (((this.execute >> 16) & 0xf) != (this.execute & 0xf)) {
+            /*
+             http://www.chiark.greenend.org.uk/~theom/riscos/docs/ultimate/a252armc.txt
+
+             Due to the way that Booth's algorithm has been implemented, certain
+             combinations of operand registers should be avoided. (The assembler will
+             issue a warning if these restrictions are overlooked.)
+             The destination register (Rd) should not be the same as the Rm operand
+             register, as Rd is used to hold intermediate values and Rm is used
+             repeatedly during the multiply. A MUL will give a zero result if Rm=Rd, and
+             a MLA will give a meaningless result.
+             */
+            result = this.CPUCore.performMUL32MLA(this.read0OffsetRegister() | 0, this.read8OffsetRegister() | 0) | 0;
+        }
+        return result | 0;
+    }
+    guard12OffsetRegisterWrite(data) {
+        data = data | 0;
+        this.incrementProgramCounter();
+        this.guard12OffsetRegisterWrite2(data | 0);
+    }
+    guard12OffsetRegisterWrite2(data) {
+        data = data | 0;
+        this.guardRegisterWrite((this.execute >> 0xc) & 0xf, data | 0);
+    }
+    guard16OffsetRegisterWrite(data) {
+        data = data | 0;
+        this.guardRegisterWrite((this.execute >> 0x10) & 0xf, data | 0);
+    }
+    guard16OffsetUserRegisterWrite(data) {
+        data = data | 0;
+        var address = (this.execute >> 0x10) & 0xf;
+        if ((address | 0) < 0xf) {
+            //Non-PC Write:
+            this.guardUserRegisterWrite(address | 0, data | 0);
+        } else {
+            //We performed a branch:
+            this.CPUCore.branch(data & -4);
+        }
+    }
+    guardProgramCounterRegisterWriteCPSR(data) {
+        data = data | 0;
+        //Restore SPSR to CPSR:
+        data = data & (-4 >> (this.CPUCore.SPSRtoCPSR() >> 5));
+        //We performed a branch:
+        this.CPUCore.branch(data | 0);
+    }
+    guardRegisterWriteCPSR(address, data) {
+        //Guard for possible pc write with cpsr update:
+        address = address | 0;
+        data = data | 0;
+        if ((address | 0) < 0xf) {
+            //Non-PC Write:
+            this.writeRegister(address | 0, data | 0);
+        } else {
+            //Restore SPSR to CPSR:
+            this.guardProgramCounterRegisterWriteCPSR(data | 0);
+        }
+    }
+    guard12OffsetRegisterWriteCPSR(data) {
+        data = data | 0;
+        this.incrementProgramCounter();
+        this.guard12OffsetRegisterWriteCPSR2(data | 0);
+    }
+    guard12OffsetRegisterWriteCPSR2(data) {
+        data = data | 0;
+        this.guardRegisterWriteCPSR((this.execute >> 0xc) & 0xf, data | 0);
+    }
+    guard16OffsetRegisterWriteCPSR(data) {
+        data = data | 0;
+        this.guardRegisterWriteCPSR((this.execute >> 0x10) & 0xf, data | 0);
+    }
+    guardUserRegisterWrite(address, data) {
+        //Guard only on user access, not PC!:
+        address = address | 0;
+        data = data | 0;
+        switch (this.CPUCore.modeFlags & 0x1f) {
+            case 0x10:
+            case 0x1f:
+                this.writeRegister(address | 0, data | 0);
+                break;
+            case 0x11:
+                if ((address | 0) < 8) {
+                    this.writeRegister(address | 0, data | 0);
+                } else {
+                    //User-Mode Register Write Inside Non-User-Mode:
+                    this.writeUserRegister(address | 0, data | 0);
+                }
+                break;
+            default:
+                if ((address | 0) < 13) {
+                    this.writeRegister(address | 0, data | 0);
+                } else {
+                    //User-Mode Register Write Inside Non-User-Mode:
+                    this.writeUserRegister(address | 0, data | 0);
+                }
+        }
+    }
+    guardRegisterWriteLDM(address, data) {
+        //Proxy guarded register write for LDM:
+        address = address | 0;
+        data = data | 0;
+        this.guardRegisterWrite(address | 0, data | 0);
+    }
+    guardUserRegisterWriteLDM(address, data) {
+        //Proxy guarded user mode register write with PC guard for LDM:
+        address = address | 0;
+        data = data | 0;
+        if ((address | 0) < 0xf) {
+            if ((this.execute & 0x8000) != 0) {
+                //PC is in the list, don't do user-mode:
+                this.writeRegister(address | 0, data | 0);
+            } else {
+                //PC isn't in the list, do user-mode:
+                this.guardUserRegisterWrite(address | 0, data | 0);
+            }
+        } else {
+            this.guardProgramCounterRegisterWriteCPSR(data | 0);
+        }
+    }
+    readPC() {
+        //PC register read:
+        return this.registers[0xf] | 0;
+    }
+    readRegister(address) {
+        //Unguarded register read:
+        address = address | 0;
+        return this.registers[address & 0xf] | 0;
+    }
+    readUserRegister(address) {
+        //Unguarded user mode register read:
+        address = address | 0;
+        var data = 0;
+        if ((address | 0) < 0xf) {
+            data = this.registersUSR[address & 0x7] | 0;
+        } else {
+            //Get Special Case PC Read:
+            data = this.readPC() | 0;
+        }
+        return data | 0;
+    }
+    read0OffsetRegister() {
+        //Unguarded register read at position 0:
+        return this.readRegister(this.execute | 0) | 0;
+    }
+    read8OffsetRegister() {
+        //Unguarded register read at position 0x8:
+        return this.readRegister(this.execute >> 0x8) | 0;
+    }
+    read12OffsetRegister() {
+        //Unguarded register read at position 0xC:
+        return this.readRegister(this.execute >> 0xc) | 0;
+    }
+    read16OffsetRegister() {
+        //Unguarded register read at position 0x10:
+        return this.readRegister(this.execute >> 0x10) | 0;
+    }
+    read16OffsetUserRegister() {
+        //Guarded register read at position 0x10:
+        return this.guardUserRegisterRead(this.execute >> 0x10) | 0;
+    }
+    guard12OffsetRegisterRead() {
+        this.incrementProgramCounter();
+        return this.readRegister((this.execute >> 12) & 0xf) | 0;
+    }
+    guardUserRegisterRead(address) {
+        //Guard only on user access, not PC!:
+        address = address | 0;
+        var data = 0;
+        switch (this.CPUCore.modeFlags & 0x1f) {
+            case 0x10:
+            case 0x1f:
+                data = this.readRegister(address | 0) | 0;
+                break;
+            case 0x11:
+                if ((address | 0) < 8) {
+                    data = this.readRegister(address | 0) | 0;
+                } else {
+                    //User-Mode Register Read Inside Non-User-Mode:
+                    data = this.readUserRegister(address | 0) | 0;
+                }
+                break;
+            default:
+                if ((address | 0) < 13) {
+                    data = this.readRegister(address | 0) | 0;
+                } else {
+                    //User-Mode Register Read Inside Non-User-Mode:
+                    data = this.readUserRegister(address | 0) | 0;
+                }
+        }
+        return data | 0;
+    }
+    BX() {
+        //Branch & eXchange:
+        var address = this.read0OffsetRegister() | 0;
+        if ((address & 0x1) == 0) {
+            //Stay in ARM mode:
+            this.CPUCore.branch(address & -4);
+        } else {
+            //Enter THUMB mode:
+            this.CPUCore.enterTHUMB();
+            this.CPUCore.branch(address & -2);
+        }
+    }
+    B() {
+        //Branch:
+        this.CPUCore.branch(((this.readPC() | 0) + ((this.execute << 8) >> 6)) | 0);
+    }
+    BL() {
+        //Branch with Link:
+        this.writeRegister(0xe, this.getLR() | 0);
+        this.B();
+    }
+    AND() {
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing1() | 0;
+        //Perform bitwise AND:
+        //Update destination register:
+        this.guard12OffsetRegisterWrite(operand1 & operand2);
+    }
+    AND2() {
+        //Increment PC:
+        this.incrementProgramCounter();
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing3() | 0;
+        //Perform bitwise AND:
+        //Update destination register:
+        this.guard12OffsetRegisterWrite2(operand1 & operand2);
+    }
+    ANDS() {
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing2() | 0;
+        //Perform bitwise AND:
+        var result = operand1 & operand2;
+        this.branchFlags.setNZInt(result | 0);
+        //Update destination register and guard CPSR for PC:
+        this.guard12OffsetRegisterWriteCPSR(result | 0);
+    }
+    ANDS2() {
+        //Increment PC:
+        this.incrementProgramCounter();
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing4() | 0;
+        //Perform bitwise AND:
+        var result = operand1 & operand2;
+        this.branchFlags.setNZInt(result | 0);
+        //Update destination register and guard CPSR for PC:
+        this.guard12OffsetRegisterWriteCPSR2(result | 0);
+    }
+    EOR() {
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing1() | 0;
+        //Perform bitwise EOR:
+        //Update destination register:
+        this.guard12OffsetRegisterWrite(operand1 ^ operand2);
+    }
+    EOR2() {
+        //Increment PC:
+        this.incrementProgramCounter();
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing3() | 0;
+        //Perform bitwise EOR:
+        //Update destination register:
+        this.guard12OffsetRegisterWrite2(operand1 ^ operand2);
+    }
+    EORS() {
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing2() | 0;
+        //Perform bitwise EOR:
+        var result = operand1 ^ operand2;
+        this.branchFlags.setNZInt(result | 0);
+        //Update destination register and guard CPSR for PC:
+        this.guard12OffsetRegisterWriteCPSR(result | 0);
+    }
+    EORS2() {
+        //Increment PC:
+        this.incrementProgramCounter();
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing4() | 0;
+        //Perform bitwise EOR:
+        var result = operand1 ^ operand2;
+        this.branchFlags.setNZInt(result | 0);
+        //Update destination register and guard CPSR for PC:
+        this.guard12OffsetRegisterWriteCPSR2(result | 0);
+    }
+    SUB() {
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing1() | 0;
+        //Perform Subtraction:
+        //Update destination register:
+        this.guard12OffsetRegisterWrite(((operand1 | 0) - (operand2 | 0)) | 0);
+    }
+    SUB2() {
+        //Increment PC:
+        this.incrementProgramCounter();
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing3() | 0;
+        //Perform Subtraction:
+        //Update destination register:
+        this.guard12OffsetRegisterWrite2(((operand1 | 0) - (operand2 | 0)) | 0);
+    }
+    SUBS() {
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing1() | 0;
+        //Update destination register:
+        this.guard12OffsetRegisterWriteCPSR(this.branchFlags.setSUBFlags(operand1 | 0, operand2 | 0) | 0);
+    }
+    SUBS2() {
+        //Increment PC:
+        this.incrementProgramCounter();
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing3() | 0;
+        //Update destination register:
+        this.guard12OffsetRegisterWriteCPSR2(this.branchFlags.setSUBFlags(operand1 | 0, operand2 | 0) | 0);
+    }
+    RSB() {
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing1() | 0;
+        //Perform Subtraction:
+        //Update destination register:
+        this.guard12OffsetRegisterWrite(((operand2 | 0) - (operand1 | 0)) | 0);
+    }
+    RSB2() {
+        //Increment PC:
+        this.incrementProgramCounter();
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing3() | 0;
+        //Perform Subtraction:
+        //Update destination register:
+        this.guard12OffsetRegisterWrite2(((operand2 | 0) - (operand1 | 0)) | 0);
+    }
+    RSBS() {
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing1() | 0;
+        //Update destination register:
+        this.guard12OffsetRegisterWriteCPSR(this.branchFlags.setSUBFlags(operand2 | 0, operand1 | 0) | 0);
+    }
+    RSBS2() {
+        //Increment PC:
+        this.incrementProgramCounter();
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing3() | 0;
+        //Update destination register:
+        this.guard12OffsetRegisterWriteCPSR2(this.branchFlags.setSUBFlags(operand2 | 0, operand1 | 0) | 0);
+    }
+    ADD() {
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing1() | 0;
+        //Perform Addition:
+        //Update destination register:
+        this.guard12OffsetRegisterWrite(((operand1 | 0) + (operand2 | 0)) | 0);
+    }
+    ADD2() {
+        //Increment PC:
+        this.incrementProgramCounter();
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing3() | 0;
+        //Perform Addition:
+        //Update destination register:
+        this.guard12OffsetRegisterWrite2(((operand1 | 0) + (operand2 | 0)) | 0);
+    }
+    ADDS() {
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing1() | 0;
+        //Update destination register:
+        this.guard12OffsetRegisterWriteCPSR(this.branchFlags.setADDFlags(operand1 | 0, operand2 | 0) | 0);
+    }
+    ADDS2() {
+        //Increment PC:
+        this.incrementProgramCounter();
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing3() | 0;
+        //Update destination register:
+        this.guard12OffsetRegisterWriteCPSR2(this.branchFlags.setADDFlags(operand1 | 0, operand2 | 0) | 0);
+    }
+    ADC() {
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing1() | 0;
+        //Perform Addition w/ Carry:
+        //Update destination register:
+        operand1 = ((operand1 | 0) + (operand2 | 0)) | 0;
+        operand1 = ((operand1 | 0) + (this.branchFlags.getCarry() >>> 31)) | 0;
+        this.guard12OffsetRegisterWrite(operand1 | 0);
+    }
+    ADC2() {
+        //Increment PC:
+        this.incrementProgramCounter();
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing3() | 0;
+        //Perform Addition w/ Carry:
+        //Update destination register:
+        operand1 = ((operand1 | 0) + (operand2 | 0)) | 0;
+        operand1 = ((operand1 | 0) + (this.branchFlags.getCarry() >>> 31)) | 0;
+        this.guard12OffsetRegisterWrite2(operand1 | 0);
+    }
+    ADCS() {
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing1() | 0;
+        //Update destination register:
+        this.guard12OffsetRegisterWriteCPSR(this.branchFlags.setADCFlags(operand1 | 0, operand2 | 0) | 0);
+    }
+    ADCS2() {
+        //Increment PC:
+        this.incrementProgramCounter();
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing3() | 0;
+        //Update destination register:
+        this.guard12OffsetRegisterWriteCPSR2(this.branchFlags.setADCFlags(operand1 | 0, operand2 | 0) | 0);
+    }
+    SBC() {
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing1() | 0;
+        //Perform Subtraction w/ Carry:
+        //Update destination register:
+        operand1 = ((operand1 | 0) - (operand2 | 0)) | 0;
+        operand1 = ((operand1 | 0) - (this.branchFlags.getCarryReverse() >>> 31)) | 0;
+        this.guard12OffsetRegisterWrite(operand1 | 0);
+    }
+    SBC2() {
+        //Increment PC:
+        this.incrementProgramCounter();
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing3() | 0;
+        //Perform Subtraction w/ Carry:
+        //Update destination register:
+        operand1 = ((operand1 | 0) - (operand2 | 0)) | 0;
+        operand1 = ((operand1 | 0) - (this.branchFlags.getCarryReverse() >>> 31)) | 0;
+        this.guard12OffsetRegisterWrite2(operand1 | 0);
+    }
+    SBCS() {
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing1() | 0;
+        //Update destination register:
+        this.guard12OffsetRegisterWriteCPSR(this.branchFlags.setSBCFlags(operand1 | 0, operand2 | 0) | 0);
+    }
+    SBCS2() {
+        //Increment PC:
+        this.incrementProgramCounter();
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing3() | 0;
+        //Update destination register:
+        this.guard12OffsetRegisterWriteCPSR2(this.branchFlags.setSBCFlags(operand1 | 0, operand2 | 0) | 0);
+    }
+    RSC() {
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing1() | 0;
+        //Perform Reverse Subtraction w/ Carry:
+        //Update destination register:
+        operand1 = ((operand2 | 0) - (operand1 | 0)) | 0;
+        operand1 = ((operand1 | 0) - (this.branchFlags.getCarryReverse() >>> 31)) | 0;
+        this.guard12OffsetRegisterWrite(operand1 | 0);
+    }
+    RSC2() {
+        //Increment PC:
+        this.incrementProgramCounter();
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing3() | 0;
+        //Perform Reverse Subtraction w/ Carry:
+        //Update destination register:
+        operand1 = ((operand2 | 0) - (operand1 | 0)) | 0;
+        operand1 = ((operand1 | 0) - (this.branchFlags.getCarryReverse() >>> 31)) | 0;
+        this.guard12OffsetRegisterWrite2(operand1 | 0);
+    }
+    RSCS() {
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing1() | 0;
+        //Update destination register:
+        this.guard12OffsetRegisterWriteCPSR(this.branchFlags.setSBCFlags(operand2 | 0, operand1 | 0) | 0);
+    }
+    RSCS2() {
+        //Increment PC:
+        this.incrementProgramCounter();
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing3() | 0;
+        //Update destination register:
+        this.guard12OffsetRegisterWriteCPSR2(this.branchFlags.setSBCFlags(operand2 | 0, operand1 | 0) | 0);
+    }
+    TSTS() {
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing2() | 0;
+        //Perform bitwise AND:
+        var result = operand1 & operand2;
+        this.branchFlags.setNZInt(result | 0);
+        //Increment PC:
         this.incrementProgramCounter();
     }
-};
-
-ARMInstructionSet.prototype.executeBubble = function () {
-    //Push the new fetch access:
-    this.fetch = this.memory.memoryReadCPU32(this.readPC() | 0) | 0;
-    //Update the Program Counter:
-    this.incrementProgramCounter();
-    //Update the pipelining state:
-    this.execute = this.decode | 0;
-    this.decode = this.fetch | 0;
-};
-ARMInstructionSet.prototype.incrementProgramCounter = function () {
-    //Increment The Program Counter:
-    this.registers[15] = ((this.registers[15] | 0) + 4) | 0;
-};
-ARMInstructionSet.prototype.getLR = function () {
-    return ((this.readPC() | 0) - 4) | 0;
-};
-ARMInstructionSet.prototype.getIRQLR = function () {
-    return this.getLR() | 0;
-};
-ARMInstructionSet.prototype.getCurrentFetchValue = function () {
-    return this.fetch | 0;
-};
-ARMInstructionSet.prototype.getSWICode = function () {
-    return (this.execute >> 16) & 0xff;
-};
-if (typeof Math.imul == 'function') {
-    //Math.imul found, insert the optimized path in:
-    ARMInstructionSet.prototype.getPopCount = function () {
-        var temp = this.execute & 0xffff;
-        temp = ((temp | 0) - ((temp >> 1) & 0x5555)) | 0;
-        temp = ((temp & 0x3333) + ((temp >> 2) & 0x3333)) | 0;
-        temp = (((temp | 0) + (temp >> 4)) & 0xf0f) | 0;
-        temp = Math.imul(temp | 0, 0x1010101) >> 24;
-        return temp | 0;
-    };
-} else {
-    //Math.imul not found, use the compatibility method:
-    ARMInstructionSet.prototype.getPopCount = function () {
-        var temp = this.execute & 0xffff;
-        temp = ((temp | 0) - ((temp >> 1) & 0x5555)) | 0;
-        temp = ((temp & 0x3333) + ((temp >> 2) & 0x3333)) | 0;
-        temp = (((temp | 0) + (temp >> 4)) & 0xf0f) | 0;
-        temp = (temp * 0x1010101) >> 24;
-        return temp | 0;
-    };
-}
-ARMInstructionSet.prototype.getNegativeOffsetStartAddress = function (currentAddress) {
-    //Used for LDMD/STMD:
-    currentAddress = currentAddress | 0;
-    var offset = this.getPopCount() << 2;
-    currentAddress = ((currentAddress | 0) - (offset | 0)) | 0;
-    return currentAddress | 0;
-};
-ARMInstructionSet.prototype.getPositiveOffsetStartAddress = function (currentAddress) {
-    //Used for LDMD/STMD:
-    currentAddress = currentAddress | 0;
-    var offset = this.getPopCount() << 2;
-    currentAddress = ((currentAddress | 0) + (offset | 0)) | 0;
-    return currentAddress | 0;
-};
-ARMInstructionSet.prototype.writeRegister = function (address, data) {
-    //Unguarded non-pc register write:
-    address = address | 0;
-    data = data | 0;
-    this.registers[address & 0xf] = data | 0;
-};
-ARMInstructionSet.prototype.writeUserRegister = function (address, data) {
-    //Unguarded non-pc user mode register write:
-    address = address | 0;
-    data = data | 0;
-    this.registersUSR[address & 0x7] = data | 0;
-};
-ARMInstructionSet.prototype.guardRegisterWrite = function (address, data) {
-    //Guarded register write:
-    address = address | 0;
-    data = data | 0;
-    if ((address | 0) < 0xf) {
-        //Non-PC Write:
-        this.writeRegister(address | 0, data | 0);
-    } else {
-        //We performed a branch:
-        this.CPUCore.branch(data & -4);
+    TSTS2() {
+        //Increment PC:
+        this.incrementProgramCounter();
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing4() | 0;
+        //Perform bitwise AND:
+        var result = operand1 & operand2;
+        this.branchFlags.setNZInt(result | 0);
     }
-};
-ARMInstructionSet.prototype.multiplyGuard12OffsetRegisterWrite = function (data) {
-    //Writes to R15 ignored in the multiply instruction!
-    data = data | 0;
-    var address = (this.execute >> 0xc) & 0xf;
-    if ((address | 0) != 0xf) {
-        this.writeRegister(address | 0, data | 0);
+    TEQS() {
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing2() | 0;
+        //Perform bitwise EOR:
+        var result = operand1 ^ operand2;
+        this.branchFlags.setNZInt(result | 0);
+        //Increment PC:
+        this.incrementProgramCounter();
     }
-};
-ARMInstructionSet.prototype.multiplyGuard16OffsetRegisterWrite = function (data) {
-    //Writes to R15 ignored in the multiply instruction!
-    data = data | 0;
-    var address = (this.execute >> 0x10) & 0xf;
-    this.incrementProgramCounter();
-    if ((address | 0) != 0xf) {
-        this.writeRegister(address | 0, data | 0);
+    TEQS2() {
+        //Increment PC:
+        this.incrementProgramCounter();
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing4() | 0;
+        //Perform bitwise EOR:
+        var result = operand1 ^ operand2;
+        this.branchFlags.setNZInt(result | 0);
     }
-};
-ARMInstructionSet.prototype.performMUL32 = function () {
-    var result = 0;
-    if (((this.execute >> 16) & 0xf) != (this.execute & 0xf)) {
-        /*
-         http://www.chiark.greenend.org.uk/~theom/riscos/docs/ultimate/a252armc.txt
-
-         Due to the way that Booth's algorithm has been implemented, certain
-         combinations of operand registers should be avoided. (The assembler will
-         issue a warning if these restrictions are overlooked.)
-         The destination register (Rd) should not be the same as the Rm operand
-         register, as Rd is used to hold intermediate values and Rm is used
-         repeatedly during the multiply. A MUL will give a zero result if Rm=Rd, and
-         a MLA will give a meaningless result.
-         */
-        result = this.CPUCore.performMUL32(this.read0OffsetRegister() | 0, this.read8OffsetRegister() | 0) | 0;
+    CMPS() {
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing1() | 0;
+        this.branchFlags.setCMPFlags(operand1 | 0, operand2 | 0);
+        //Increment PC:
+        this.incrementProgramCounter();
     }
-    return result | 0;
-};
-ARMInstructionSet.prototype.performMUL32MLA = function () {
-    var result = 0;
-    if (((this.execute >> 16) & 0xf) != (this.execute & 0xf)) {
-        /*
-         http://www.chiark.greenend.org.uk/~theom/riscos/docs/ultimate/a252armc.txt
-
-         Due to the way that Booth's algorithm has been implemented, certain
-         combinations of operand registers should be avoided. (The assembler will
-         issue a warning if these restrictions are overlooked.)
-         The destination register (Rd) should not be the same as the Rm operand
-         register, as Rd is used to hold intermediate values and Rm is used
-         repeatedly during the multiply. A MUL will give a zero result if Rm=Rd, and
-         a MLA will give a meaningless result.
-         */
-        result = this.CPUCore.performMUL32MLA(this.read0OffsetRegister() | 0, this.read8OffsetRegister() | 0) | 0;
+    CMPS2() {
+        //Increment PC:
+        this.incrementProgramCounter();
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing3() | 0;
+        this.branchFlags.setCMPFlags(operand1 | 0, operand2 | 0);
     }
-    return result | 0;
-};
-ARMInstructionSet.prototype.guard12OffsetRegisterWrite = function (data) {
-    data = data | 0;
-    this.incrementProgramCounter();
-    this.guard12OffsetRegisterWrite2(data | 0);
-};
-ARMInstructionSet.prototype.guard12OffsetRegisterWrite2 = function (data) {
-    data = data | 0;
-    this.guardRegisterWrite((this.execute >> 0xc) & 0xf, data | 0);
-};
-ARMInstructionSet.prototype.guard16OffsetRegisterWrite = function (data) {
-    data = data | 0;
-    this.guardRegisterWrite((this.execute >> 0x10) & 0xf, data | 0);
-};
-ARMInstructionSet.prototype.guard16OffsetUserRegisterWrite = function (data) {
-    data = data | 0;
-    var address = (this.execute >> 0x10) & 0xf;
-    if ((address | 0) < 0xf) {
-        //Non-PC Write:
-        this.guardUserRegisterWrite(address | 0, data | 0);
-    } else {
-        //We performed a branch:
-        this.CPUCore.branch(data & -4);
+    CMNS() {
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing1();
+        this.branchFlags.setCMNFlags(operand1 | 0, operand2 | 0);
+        //Increment PC:
+        this.incrementProgramCounter();
     }
-};
-ARMInstructionSet.prototype.guardProgramCounterRegisterWriteCPSR = function (data) {
-    data = data | 0;
-    //Restore SPSR to CPSR:
-    data = data & (-4 >> (this.CPUCore.SPSRtoCPSR() >> 5));
-    //We performed a branch:
-    this.CPUCore.branch(data | 0);
-};
-ARMInstructionSet.prototype.guardRegisterWriteCPSR = function (address, data) {
-    //Guard for possible pc write with cpsr update:
-    address = address | 0;
-    data = data | 0;
-    if ((address | 0) < 0xf) {
-        //Non-PC Write:
-        this.writeRegister(address | 0, data | 0);
-    } else {
-        //Restore SPSR to CPSR:
-        this.guardProgramCounterRegisterWriteCPSR(data | 0);
+    CMNS2() {
+        //Increment PC:
+        this.incrementProgramCounter();
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing3();
+        this.branchFlags.setCMNFlags(operand1 | 0, operand2 | 0);
     }
-};
-ARMInstructionSet.prototype.guard12OffsetRegisterWriteCPSR = function (data) {
-    data = data | 0;
-    this.incrementProgramCounter();
-    this.guard12OffsetRegisterWriteCPSR2(data | 0);
-};
-ARMInstructionSet.prototype.guard12OffsetRegisterWriteCPSR2 = function (data) {
-    data = data | 0;
-    this.guardRegisterWriteCPSR((this.execute >> 0xc) & 0xf, data | 0);
-};
-ARMInstructionSet.prototype.guard16OffsetRegisterWriteCPSR = function (data) {
-    data = data | 0;
-    this.guardRegisterWriteCPSR((this.execute >> 0x10) & 0xf, data | 0);
-};
-ARMInstructionSet.prototype.guardUserRegisterWrite = function (address, data) {
-    //Guard only on user access, not PC!:
-    address = address | 0;
-    data = data | 0;
-    switch (this.CPUCore.modeFlags & 0x1f) {
-        case 0x10:
-        case 0x1f:
-            this.writeRegister(address | 0, data | 0);
-            break;
-        case 0x11:
-            if ((address | 0) < 8) {
-                this.writeRegister(address | 0, data | 0);
-            } else {
-                //User-Mode Register Write Inside Non-User-Mode:
-                this.writeUserRegister(address | 0, data | 0);
-            }
-            break;
-        default:
-            if ((address | 0) < 13) {
-                this.writeRegister(address | 0, data | 0);
-            } else {
-                //User-Mode Register Write Inside Non-User-Mode:
-                this.writeUserRegister(address | 0, data | 0);
-            }
+    ORR() {
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing1() | 0;
+        //Perform bitwise OR:
+        //Update destination register:
+        this.guard12OffsetRegisterWrite(operand1 | operand2);
     }
-};
-ARMInstructionSet.prototype.guardRegisterWriteLDM = function (address, data) {
-    //Proxy guarded register write for LDM:
-    address = address | 0;
-    data = data | 0;
-    this.guardRegisterWrite(address | 0, data | 0);
-};
-ARMInstructionSet.prototype.guardUserRegisterWriteLDM = function (address, data) {
-    //Proxy guarded user mode register write with PC guard for LDM:
-    address = address | 0;
-    data = data | 0;
-    if ((address | 0) < 0xf) {
-        if ((this.execute & 0x8000) != 0) {
-            //PC is in the list, don't do user-mode:
-            this.writeRegister(address | 0, data | 0);
+    ORR2() {
+        //Increment PC:
+        this.incrementProgramCounter();
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing3() | 0;
+        //Perform bitwise OR:
+        //Update destination register:
+        this.guard12OffsetRegisterWrite2(operand1 | operand2);
+    }
+    ORRS() {
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing2() | 0;
+        //Perform bitwise OR:
+        var result = operand1 | operand2;
+        this.branchFlags.setNZInt(result | 0);
+        //Update destination register and guard CPSR for PC:
+        this.guard12OffsetRegisterWriteCPSR(result | 0);
+    }
+    ORRS2() {
+        //Increment PC:
+        this.incrementProgramCounter();
+        var operand1 = this.read16OffsetRegister() | 0;
+        var operand2 = this.operand2OP_DataProcessing4() | 0;
+        //Perform bitwise OR:
+        var result = operand1 | operand2;
+        this.branchFlags.setNZInt(result | 0);
+        //Update destination register and guard CPSR for PC:
+        this.guard12OffsetRegisterWriteCPSR2(result | 0);
+    }
+    MOV() {
+        //Perform move:
+        //Update destination register:
+        this.guard12OffsetRegisterWrite(this.operand2OP_DataProcessing1() | 0);
+    }
+    MOV2() {
+        //Increment PC:
+        this.incrementProgramCounter();
+        //Perform move:
+        //Update destination register:
+        this.guard12OffsetRegisterWrite2(this.operand2OP_DataProcessing3() | 0);
+    }
+    MOVS() {
+        var operand2 = this.operand2OP_DataProcessing2() | 0;
+        //Perform move:
+        this.branchFlags.setNZInt(operand2 | 0);
+        //Update destination register and guard CPSR for PC:
+        this.guard12OffsetRegisterWriteCPSR(operand2 | 0);
+    }
+    MOVS2() {
+        //Increment PC:
+        this.incrementProgramCounter();
+        var operand2 = this.operand2OP_DataProcessing4() | 0;
+        //Perform move:
+        this.branchFlags.setNZInt(operand2 | 0);
+        //Update destination register and guard CPSR for PC:
+        this.guard12OffsetRegisterWriteCPSR2(operand2 | 0);
+    }
+    BIC() {
+        var operand1 = this.read16OffsetRegister() | 0;
+        //NOT operand 2:
+        var operand2 = ~this.operand2OP_DataProcessing1();
+        //Perform bitwise AND:
+        //Update destination register:
+        this.guard12OffsetRegisterWrite(operand1 & operand2);
+    }
+    BIC2() {
+        //Increment PC:
+        this.incrementProgramCounter();
+        var operand1 = this.read16OffsetRegister() | 0;
+        //NOT operand 2:
+        var operand2 = ~this.operand2OP_DataProcessing3();
+        //Perform bitwise AND:
+        //Update destination register:
+        this.guard12OffsetRegisterWrite2(operand1 & operand2);
+    }
+    BICS() {
+        var operand1 = this.read16OffsetRegister() | 0;
+        //NOT operand 2:
+        var operand2 = ~this.operand2OP_DataProcessing2();
+        //Perform bitwise AND:
+        var result = operand1 & operand2;
+        this.branchFlags.setNZInt(result | 0);
+        //Update destination register and guard CPSR for PC:
+        this.guard12OffsetRegisterWriteCPSR(result | 0);
+    }
+    BICS2() {
+        //Increment PC:
+        this.incrementProgramCounter();
+        var operand1 = this.read16OffsetRegister() | 0;
+        //NOT operand 2:
+        var operand2 = ~this.operand2OP_DataProcessing4();
+        //Perform bitwise AND:
+        var result = operand1 & operand2;
+        this.branchFlags.setNZInt(result | 0);
+        //Update destination register and guard CPSR for PC:
+        this.guard12OffsetRegisterWriteCPSR2(result | 0);
+    }
+    MVN() {
+        //Perform move negative:
+        //Update destination register:
+        this.guard12OffsetRegisterWrite(~this.operand2OP_DataProcessing1());
+    }
+    MVN2() {
+        //Increment PC:
+        this.incrementProgramCounter();
+        //Perform move negative:
+        //Update destination register:
+        this.guard12OffsetRegisterWrite2(~this.operand2OP_DataProcessing3());
+    }
+    MVNS() {
+        var operand2 = ~this.operand2OP_DataProcessing2();
+        //Perform move negative:
+        this.branchFlags.setNZInt(operand2 | 0);
+        //Update destination register and guard CPSR for PC:
+        this.guard12OffsetRegisterWriteCPSR(operand2 | 0);
+    }
+    MVNS2() {
+        //Increment PC:
+        this.incrementProgramCounter();
+        var operand2 = ~this.operand2OP_DataProcessing4();
+        //Perform move negative:
+        this.branchFlags.setNZInt(operand2 | 0);
+        //Update destination register and guard CPSR for PC:
+        this.guard12OffsetRegisterWriteCPSR2(operand2 | 0);
+    }
+    MRS() {
+        //Transfer PSR to Register:
+        var psr = 0;
+        if ((this.execute & 0x400000) == 0) {
+            //CPSR->Register
+            psr = this.rc() | 0;
         } else {
-            //PC isn't in the list, do user-mode:
-            this.guardUserRegisterWrite(address | 0, data | 0);
+            //SPSR->Register
+            psr = this.rs() | 0;
         }
-    } else {
-        this.guardProgramCounterRegisterWriteCPSR(data | 0);
+        this.guard12OffsetRegisterWrite(psr | 0);
     }
-};
-ARMInstructionSet.prototype.readPC = function () {
-    //PC register read:
-    return this.registers[0xf] | 0;
-};
-ARMInstructionSet.prototype.readRegister = function (address) {
-    //Unguarded register read:
-    address = address | 0;
-    return this.registers[address & 0xf] | 0;
-};
-ARMInstructionSet.prototype.readUserRegister = function (address) {
-    //Unguarded user mode register read:
-    address = address | 0;
-    var data = 0;
-    if ((address | 0) < 0xf) {
-        data = this.registersUSR[address & 0x7] | 0;
-    } else {
-        //Get Special Case PC Read:
-        data = this.readPC() | 0;
-    }
-    return data | 0;
-};
-ARMInstructionSet.prototype.read0OffsetRegister = function () {
-    //Unguarded register read at position 0:
-    return this.readRegister(this.execute | 0) | 0;
-};
-ARMInstructionSet.prototype.read8OffsetRegister = function () {
-    //Unguarded register read at position 0x8:
-    return this.readRegister(this.execute >> 0x8) | 0;
-};
-ARMInstructionSet.prototype.read12OffsetRegister = function () {
-    //Unguarded register read at position 0xC:
-    return this.readRegister(this.execute >> 0xc) | 0;
-};
-ARMInstructionSet.prototype.read16OffsetRegister = function () {
-    //Unguarded register read at position 0x10:
-    return this.readRegister(this.execute >> 0x10) | 0;
-};
-ARMInstructionSet.prototype.read16OffsetUserRegister = function () {
-    //Guarded register read at position 0x10:
-    return this.guardUserRegisterRead(this.execute >> 0x10) | 0;
-};
-ARMInstructionSet.prototype.guard12OffsetRegisterRead = function () {
-    this.incrementProgramCounter();
-    return this.readRegister((this.execute >> 12) & 0xf) | 0;
-};
-ARMInstructionSet.prototype.guardUserRegisterRead = function (address) {
-    //Guard only on user access, not PC!:
-    address = address | 0;
-    var data = 0;
-    switch (this.CPUCore.modeFlags & 0x1f) {
-        case 0x10:
-        case 0x1f:
-            data = this.readRegister(address | 0) | 0;
-            break;
-        case 0x11:
-            if ((address | 0) < 8) {
-                data = this.readRegister(address | 0) | 0;
-            } else {
-                //User-Mode Register Read Inside Non-User-Mode:
-                data = this.readUserRegister(address | 0) | 0;
-            }
-            break;
-        default:
-            if ((address | 0) < 13) {
-                data = this.readRegister(address | 0) | 0;
-            } else {
-                //User-Mode Register Read Inside Non-User-Mode:
-                data = this.readUserRegister(address | 0) | 0;
-            }
-    }
-    return data | 0;
-};
-ARMInstructionSet.prototype.BX = function () {
-    //Branch & eXchange:
-    var address = this.read0OffsetRegister() | 0;
-    if ((address & 0x1) == 0) {
-        //Stay in ARM mode:
-        this.CPUCore.branch(address & -4);
-    } else {
-        //Enter THUMB mode:
-        this.CPUCore.enterTHUMB();
-        this.CPUCore.branch(address & -2);
-    }
-};
-ARMInstructionSet.prototype.B = function () {
-    //Branch:
-    this.CPUCore.branch(((this.readPC() | 0) + ((this.execute << 8) >> 6)) | 0);
-};
-ARMInstructionSet.prototype.BL = function () {
-    //Branch with Link:
-    this.writeRegister(0xe, this.getLR() | 0);
-    this.B();
-};
-ARMInstructionSet.prototype.AND = function () {
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing1() | 0;
-    //Perform bitwise AND:
-    //Update destination register:
-    this.guard12OffsetRegisterWrite(operand1 & operand2);
-};
-ARMInstructionSet.prototype.AND2 = function () {
-    //Increment PC:
-    this.incrementProgramCounter();
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing3() | 0;
-    //Perform bitwise AND:
-    //Update destination register:
-    this.guard12OffsetRegisterWrite2(operand1 & operand2);
-};
-ARMInstructionSet.prototype.ANDS = function () {
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing2() | 0;
-    //Perform bitwise AND:
-    var result = operand1 & operand2;
-    this.branchFlags.setNZInt(result | 0);
-    //Update destination register and guard CPSR for PC:
-    this.guard12OffsetRegisterWriteCPSR(result | 0);
-};
-ARMInstructionSet.prototype.ANDS2 = function () {
-    //Increment PC:
-    this.incrementProgramCounter();
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing4() | 0;
-    //Perform bitwise AND:
-    var result = operand1 & operand2;
-    this.branchFlags.setNZInt(result | 0);
-    //Update destination register and guard CPSR for PC:
-    this.guard12OffsetRegisterWriteCPSR2(result | 0);
-};
-ARMInstructionSet.prototype.EOR = function () {
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing1() | 0;
-    //Perform bitwise EOR:
-    //Update destination register:
-    this.guard12OffsetRegisterWrite(operand1 ^ operand2);
-};
-ARMInstructionSet.prototype.EOR2 = function () {
-    //Increment PC:
-    this.incrementProgramCounter();
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing3() | 0;
-    //Perform bitwise EOR:
-    //Update destination register:
-    this.guard12OffsetRegisterWrite2(operand1 ^ operand2);
-};
-ARMInstructionSet.prototype.EORS = function () {
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing2() | 0;
-    //Perform bitwise EOR:
-    var result = operand1 ^ operand2;
-    this.branchFlags.setNZInt(result | 0);
-    //Update destination register and guard CPSR for PC:
-    this.guard12OffsetRegisterWriteCPSR(result | 0);
-};
-ARMInstructionSet.prototype.EORS2 = function () {
-    //Increment PC:
-    this.incrementProgramCounter();
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing4() | 0;
-    //Perform bitwise EOR:
-    var result = operand1 ^ operand2;
-    this.branchFlags.setNZInt(result | 0);
-    //Update destination register and guard CPSR for PC:
-    this.guard12OffsetRegisterWriteCPSR2(result | 0);
-};
-ARMInstructionSet.prototype.SUB = function () {
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing1() | 0;
-    //Perform Subtraction:
-    //Update destination register:
-    this.guard12OffsetRegisterWrite(((operand1 | 0) - (operand2 | 0)) | 0);
-};
-ARMInstructionSet.prototype.SUB2 = function () {
-    //Increment PC:
-    this.incrementProgramCounter();
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing3() | 0;
-    //Perform Subtraction:
-    //Update destination register:
-    this.guard12OffsetRegisterWrite2(((operand1 | 0) - (operand2 | 0)) | 0);
-};
-ARMInstructionSet.prototype.SUBS = function () {
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing1() | 0;
-    //Update destination register:
-    this.guard12OffsetRegisterWriteCPSR(this.branchFlags.setSUBFlags(operand1 | 0, operand2 | 0) | 0);
-};
-ARMInstructionSet.prototype.SUBS2 = function () {
-    //Increment PC:
-    this.incrementProgramCounter();
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing3() | 0;
-    //Update destination register:
-    this.guard12OffsetRegisterWriteCPSR2(this.branchFlags.setSUBFlags(operand1 | 0, operand2 | 0) | 0);
-};
-ARMInstructionSet.prototype.RSB = function () {
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing1() | 0;
-    //Perform Subtraction:
-    //Update destination register:
-    this.guard12OffsetRegisterWrite(((operand2 | 0) - (operand1 | 0)) | 0);
-};
-ARMInstructionSet.prototype.RSB2 = function () {
-    //Increment PC:
-    this.incrementProgramCounter();
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing3() | 0;
-    //Perform Subtraction:
-    //Update destination register:
-    this.guard12OffsetRegisterWrite2(((operand2 | 0) - (operand1 | 0)) | 0);
-};
-ARMInstructionSet.prototype.RSBS = function () {
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing1() | 0;
-    //Update destination register:
-    this.guard12OffsetRegisterWriteCPSR(this.branchFlags.setSUBFlags(operand2 | 0, operand1 | 0) | 0);
-};
-ARMInstructionSet.prototype.RSBS2 = function () {
-    //Increment PC:
-    this.incrementProgramCounter();
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing3() | 0;
-    //Update destination register:
-    this.guard12OffsetRegisterWriteCPSR2(this.branchFlags.setSUBFlags(operand2 | 0, operand1 | 0) | 0);
-};
-ARMInstructionSet.prototype.ADD = function () {
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing1() | 0;
-    //Perform Addition:
-    //Update destination register:
-    this.guard12OffsetRegisterWrite(((operand1 | 0) + (operand2 | 0)) | 0);
-};
-ARMInstructionSet.prototype.ADD2 = function () {
-    //Increment PC:
-    this.incrementProgramCounter();
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing3() | 0;
-    //Perform Addition:
-    //Update destination register:
-    this.guard12OffsetRegisterWrite2(((operand1 | 0) + (operand2 | 0)) | 0);
-};
-ARMInstructionSet.prototype.ADDS = function () {
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing1() | 0;
-    //Update destination register:
-    this.guard12OffsetRegisterWriteCPSR(this.branchFlags.setADDFlags(operand1 | 0, operand2 | 0) | 0);
-};
-ARMInstructionSet.prototype.ADDS2 = function () {
-    //Increment PC:
-    this.incrementProgramCounter();
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing3() | 0;
-    //Update destination register:
-    this.guard12OffsetRegisterWriteCPSR2(this.branchFlags.setADDFlags(operand1 | 0, operand2 | 0) | 0);
-};
-ARMInstructionSet.prototype.ADC = function () {
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing1() | 0;
-    //Perform Addition w/ Carry:
-    //Update destination register:
-    operand1 = ((operand1 | 0) + (operand2 | 0)) | 0;
-    operand1 = ((operand1 | 0) + (this.branchFlags.getCarry() >>> 31)) | 0;
-    this.guard12OffsetRegisterWrite(operand1 | 0);
-};
-ARMInstructionSet.prototype.ADC2 = function () {
-    //Increment PC:
-    this.incrementProgramCounter();
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing3() | 0;
-    //Perform Addition w/ Carry:
-    //Update destination register:
-    operand1 = ((operand1 | 0) + (operand2 | 0)) | 0;
-    operand1 = ((operand1 | 0) + (this.branchFlags.getCarry() >>> 31)) | 0;
-    this.guard12OffsetRegisterWrite2(operand1 | 0);
-};
-ARMInstructionSet.prototype.ADCS = function () {
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing1() | 0;
-    //Update destination register:
-    this.guard12OffsetRegisterWriteCPSR(this.branchFlags.setADCFlags(operand1 | 0, operand2 | 0) | 0);
-};
-ARMInstructionSet.prototype.ADCS2 = function () {
-    //Increment PC:
-    this.incrementProgramCounter();
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing3() | 0;
-    //Update destination register:
-    this.guard12OffsetRegisterWriteCPSR2(this.branchFlags.setADCFlags(operand1 | 0, operand2 | 0) | 0);
-};
-ARMInstructionSet.prototype.SBC = function () {
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing1() | 0;
-    //Perform Subtraction w/ Carry:
-    //Update destination register:
-    operand1 = ((operand1 | 0) - (operand2 | 0)) | 0;
-    operand1 = ((operand1 | 0) - (this.branchFlags.getCarryReverse() >>> 31)) | 0;
-    this.guard12OffsetRegisterWrite(operand1 | 0);
-};
-ARMInstructionSet.prototype.SBC2 = function () {
-    //Increment PC:
-    this.incrementProgramCounter();
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing3() | 0;
-    //Perform Subtraction w/ Carry:
-    //Update destination register:
-    operand1 = ((operand1 | 0) - (operand2 | 0)) | 0;
-    operand1 = ((operand1 | 0) - (this.branchFlags.getCarryReverse() >>> 31)) | 0;
-    this.guard12OffsetRegisterWrite2(operand1 | 0);
-};
-ARMInstructionSet.prototype.SBCS = function () {
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing1() | 0;
-    //Update destination register:
-    this.guard12OffsetRegisterWriteCPSR(this.branchFlags.setSBCFlags(operand1 | 0, operand2 | 0) | 0);
-};
-ARMInstructionSet.prototype.SBCS2 = function () {
-    //Increment PC:
-    this.incrementProgramCounter();
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing3() | 0;
-    //Update destination register:
-    this.guard12OffsetRegisterWriteCPSR2(this.branchFlags.setSBCFlags(operand1 | 0, operand2 | 0) | 0);
-};
-ARMInstructionSet.prototype.RSC = function () {
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing1() | 0;
-    //Perform Reverse Subtraction w/ Carry:
-    //Update destination register:
-    operand1 = ((operand2 | 0) - (operand1 | 0)) | 0;
-    operand1 = ((operand1 | 0) - (this.branchFlags.getCarryReverse() >>> 31)) | 0;
-    this.guard12OffsetRegisterWrite(operand1 | 0);
-};
-ARMInstructionSet.prototype.RSC2 = function () {
-    //Increment PC:
-    this.incrementProgramCounter();
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing3() | 0;
-    //Perform Reverse Subtraction w/ Carry:
-    //Update destination register:
-    operand1 = ((operand2 | 0) - (operand1 | 0)) | 0;
-    operand1 = ((operand1 | 0) - (this.branchFlags.getCarryReverse() >>> 31)) | 0;
-    this.guard12OffsetRegisterWrite2(operand1 | 0);
-};
-ARMInstructionSet.prototype.RSCS = function () {
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing1() | 0;
-    //Update destination register:
-    this.guard12OffsetRegisterWriteCPSR(this.branchFlags.setSBCFlags(operand2 | 0, operand1 | 0) | 0);
-};
-ARMInstructionSet.prototype.RSCS2 = function () {
-    //Increment PC:
-    this.incrementProgramCounter();
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing3() | 0;
-    //Update destination register:
-    this.guard12OffsetRegisterWriteCPSR2(this.branchFlags.setSBCFlags(operand2 | 0, operand1 | 0) | 0);
-};
-ARMInstructionSet.prototype.TSTS = function () {
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing2() | 0;
-    //Perform bitwise AND:
-    var result = operand1 & operand2;
-    this.branchFlags.setNZInt(result | 0);
-    //Increment PC:
-    this.incrementProgramCounter();
-};
-ARMInstructionSet.prototype.TSTS2 = function () {
-    //Increment PC:
-    this.incrementProgramCounter();
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing4() | 0;
-    //Perform bitwise AND:
-    var result = operand1 & operand2;
-    this.branchFlags.setNZInt(result | 0);
-};
-ARMInstructionSet.prototype.TEQS = function () {
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing2() | 0;
-    //Perform bitwise EOR:
-    var result = operand1 ^ operand2;
-    this.branchFlags.setNZInt(result | 0);
-    //Increment PC:
-    this.incrementProgramCounter();
-};
-ARMInstructionSet.prototype.TEQS2 = function () {
-    //Increment PC:
-    this.incrementProgramCounter();
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing4() | 0;
-    //Perform bitwise EOR:
-    var result = operand1 ^ operand2;
-    this.branchFlags.setNZInt(result | 0);
-};
-ARMInstructionSet.prototype.CMPS = function () {
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing1() | 0;
-    this.branchFlags.setCMPFlags(operand1 | 0, operand2 | 0);
-    //Increment PC:
-    this.incrementProgramCounter();
-};
-ARMInstructionSet.prototype.CMPS2 = function () {
-    //Increment PC:
-    this.incrementProgramCounter();
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing3() | 0;
-    this.branchFlags.setCMPFlags(operand1 | 0, operand2 | 0);
-};
-ARMInstructionSet.prototype.CMNS = function () {
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing1();
-    this.branchFlags.setCMNFlags(operand1 | 0, operand2 | 0);
-    //Increment PC:
-    this.incrementProgramCounter();
-};
-ARMInstructionSet.prototype.CMNS2 = function () {
-    //Increment PC:
-    this.incrementProgramCounter();
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing3();
-    this.branchFlags.setCMNFlags(operand1 | 0, operand2 | 0);
-};
-ARMInstructionSet.prototype.ORR = function () {
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing1() | 0;
-    //Perform bitwise OR:
-    //Update destination register:
-    this.guard12OffsetRegisterWrite(operand1 | operand2);
-};
-ARMInstructionSet.prototype.ORR2 = function () {
-    //Increment PC:
-    this.incrementProgramCounter();
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing3() | 0;
-    //Perform bitwise OR:
-    //Update destination register:
-    this.guard12OffsetRegisterWrite2(operand1 | operand2);
-};
-ARMInstructionSet.prototype.ORRS = function () {
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing2() | 0;
-    //Perform bitwise OR:
-    var result = operand1 | operand2;
-    this.branchFlags.setNZInt(result | 0);
-    //Update destination register and guard CPSR for PC:
-    this.guard12OffsetRegisterWriteCPSR(result | 0);
-};
-ARMInstructionSet.prototype.ORRS2 = function () {
-    //Increment PC:
-    this.incrementProgramCounter();
-    var operand1 = this.read16OffsetRegister() | 0;
-    var operand2 = this.operand2OP_DataProcessing4() | 0;
-    //Perform bitwise OR:
-    var result = operand1 | operand2;
-    this.branchFlags.setNZInt(result | 0);
-    //Update destination register and guard CPSR for PC:
-    this.guard12OffsetRegisterWriteCPSR2(result | 0);
-};
-ARMInstructionSet.prototype.MOV = function () {
-    //Perform move:
-    //Update destination register:
-    this.guard12OffsetRegisterWrite(this.operand2OP_DataProcessing1() | 0);
-};
-ARMInstructionSet.prototype.MOV2 = function () {
-    //Increment PC:
-    this.incrementProgramCounter();
-    //Perform move:
-    //Update destination register:
-    this.guard12OffsetRegisterWrite2(this.operand2OP_DataProcessing3() | 0);
-};
-ARMInstructionSet.prototype.MOVS = function () {
-    var operand2 = this.operand2OP_DataProcessing2() | 0;
-    //Perform move:
-    this.branchFlags.setNZInt(operand2 | 0);
-    //Update destination register and guard CPSR for PC:
-    this.guard12OffsetRegisterWriteCPSR(operand2 | 0);
-};
-ARMInstructionSet.prototype.MOVS2 = function () {
-    //Increment PC:
-    this.incrementProgramCounter();
-    var operand2 = this.operand2OP_DataProcessing4() | 0;
-    //Perform move:
-    this.branchFlags.setNZInt(operand2 | 0);
-    //Update destination register and guard CPSR for PC:
-    this.guard12OffsetRegisterWriteCPSR2(operand2 | 0);
-};
-ARMInstructionSet.prototype.BIC = function () {
-    var operand1 = this.read16OffsetRegister() | 0;
-    //NOT operand 2:
-    var operand2 = ~this.operand2OP_DataProcessing1();
-    //Perform bitwise AND:
-    //Update destination register:
-    this.guard12OffsetRegisterWrite(operand1 & operand2);
-};
-ARMInstructionSet.prototype.BIC2 = function () {
-    //Increment PC:
-    this.incrementProgramCounter();
-    var operand1 = this.read16OffsetRegister() | 0;
-    //NOT operand 2:
-    var operand2 = ~this.operand2OP_DataProcessing3();
-    //Perform bitwise AND:
-    //Update destination register:
-    this.guard12OffsetRegisterWrite2(operand1 & operand2);
-};
-ARMInstructionSet.prototype.BICS = function () {
-    var operand1 = this.read16OffsetRegister() | 0;
-    //NOT operand 2:
-    var operand2 = ~this.operand2OP_DataProcessing2();
-    //Perform bitwise AND:
-    var result = operand1 & operand2;
-    this.branchFlags.setNZInt(result | 0);
-    //Update destination register and guard CPSR for PC:
-    this.guard12OffsetRegisterWriteCPSR(result | 0);
-};
-ARMInstructionSet.prototype.BICS2 = function () {
-    //Increment PC:
-    this.incrementProgramCounter();
-    var operand1 = this.read16OffsetRegister() | 0;
-    //NOT operand 2:
-    var operand2 = ~this.operand2OP_DataProcessing4();
-    //Perform bitwise AND:
-    var result = operand1 & operand2;
-    this.branchFlags.setNZInt(result | 0);
-    //Update destination register and guard CPSR for PC:
-    this.guard12OffsetRegisterWriteCPSR2(result | 0);
-};
-ARMInstructionSet.prototype.MVN = function () {
-    //Perform move negative:
-    //Update destination register:
-    this.guard12OffsetRegisterWrite(~this.operand2OP_DataProcessing1());
-};
-ARMInstructionSet.prototype.MVN2 = function () {
-    //Increment PC:
-    this.incrementProgramCounter();
-    //Perform move negative:
-    //Update destination register:
-    this.guard12OffsetRegisterWrite2(~this.operand2OP_DataProcessing3());
-};
-ARMInstructionSet.prototype.MVNS = function () {
-    var operand2 = ~this.operand2OP_DataProcessing2();
-    //Perform move negative:
-    this.branchFlags.setNZInt(operand2 | 0);
-    //Update destination register and guard CPSR for PC:
-    this.guard12OffsetRegisterWriteCPSR(operand2 | 0);
-};
-ARMInstructionSet.prototype.MVNS2 = function () {
-    //Increment PC:
-    this.incrementProgramCounter();
-    var operand2 = ~this.operand2OP_DataProcessing4();
-    //Perform move negative:
-    this.branchFlags.setNZInt(operand2 | 0);
-    //Update destination register and guard CPSR for PC:
-    this.guard12OffsetRegisterWriteCPSR2(operand2 | 0);
-};
-ARMInstructionSet.prototype.MRS = function () {
-    //Transfer PSR to Register:
-    var psr = 0;
-    if ((this.execute & 0x400000) == 0) {
-        //CPSR->Register
-        psr = this.rc() | 0;
-    } else {
-        //SPSR->Register
-        psr = this.rs() | 0;
-    }
-    this.guard12OffsetRegisterWrite(psr | 0);
-};
-ARMInstructionSet.prototype.MSR = function () {
-    switch (this.execute & 0x2400000) {
-        case 0:
-            //Reg->CPSR
-            this.MSR1();
-            break;
-        case 0x400000:
-            //Reg->SPSR
-            this.MSR2();
-            break;
-        case 0x2000000:
-            //Immediate->CPSR
-            this.MSR3();
-            break;
-        default:
-            //Immediate->SPSR
-            this.MSR4();
-    }
-    //Increment PC:
-    this.incrementProgramCounter();
-};
-ARMInstructionSet.prototype.MSR1 = function () {
-    var newcpsr = this.read0OffsetRegister() | 0;
-    this.branchFlags.setNZCV(newcpsr | 0);
-    if ((this.execute & 0x10000) != 0 && (this.CPUCore.modeFlags & 0x1f) != 0x10) {
-        this.CPUCore.switchRegisterBank(newcpsr & 0x1f);
-        this.CPUCore.modeFlags = newcpsr & 0xdf;
-        this.CPUCore.assertIRQ();
-    }
-};
-ARMInstructionSet.prototype.MSR2 = function () {
-    var operand = this.read0OffsetRegister() | 0;
-    var bank = 1;
-    switch (this.CPUCore.modeFlags & 0x1f) {
-        case 0x12: //IRQ
-            break;
-        case 0x13: //Supervisor
-            bank = 2;
-            break;
-        case 0x11: //FIQ
-            bank = 0;
-            break;
-        case 0x17: //Abort
-            bank = 3;
-            break;
-        case 0x1b: //Undefined
-            bank = 4;
-            break;
-        default:
-            return;
-    }
-    var spsr = (operand >> 20) & 0xf00;
-    if ((this.execute & 0x10000) != 0) {
-        spsr = spsr | (operand & 0xff);
-    } else {
-        spsr = spsr | (this.CPUCore.SPSR[bank | 0] & 0xff);
-    }
-    this.CPUCore.SPSR[bank | 0] = spsr | 0;
-};
-ARMInstructionSet.prototype.MSR3 = function () {
-    var operand = this.imm() | 0;
-    this.branchFlags.setNZCV(operand | 0);
-};
-ARMInstructionSet.prototype.MSR4 = function () {
-    var operand = this.imm() >> 20;
-    var bank = 1;
-    switch (this.CPUCore.modeFlags & 0x1f) {
-        case 0x12: //IRQ
-            break;
-        case 0x13: //Supervisor
-            bank = 2;
-            break;
-        case 0x11: //FIQ
-            bank = 0;
-            break;
-        case 0x17: //Abort
-            bank = 3;
-            break;
-        case 0x1b: //Undefined
-            bank = 4;
-            break;
-        default:
-            return;
-    }
-    var spsr = this.CPUCore.SPSR[bank | 0] & 0xff;
-    this.CPUCore.SPSR[bank | 0] = spsr | (operand & 0xf00);
-};
-ARMInstructionSet.prototype.MUL = function () {
-    //Perform multiplication:
-    var result = this.performMUL32() | 0;
-    //Update destination register:
-    this.multiplyGuard16OffsetRegisterWrite(result | 0);
-};
-ARMInstructionSet.prototype.MULS = function () {
-    //Perform multiplication:
-    var result = this.performMUL32() | 0;
-    this.branchFlags.setCarryFalse();
-    this.branchFlags.setNZInt(result | 0);
-    //Update destination register and guard CPSR for PC:
-    this.multiplyGuard16OffsetRegisterWrite(result | 0);
-};
-ARMInstructionSet.prototype.MLA = function () {
-    //Perform multiplication:
-    var result = this.performMUL32MLA() | 0;
-    //Perform addition:
-    result = ((result | 0) + (this.read12OffsetRegister() | 0)) | 0;
-    //Update destination register:
-    this.multiplyGuard16OffsetRegisterWrite(result | 0);
-};
-ARMInstructionSet.prototype.MLAS = function () {
-    //Perform multiplication:
-    var result = this.performMUL32MLA() | 0;
-    //Perform addition:
-    result = ((result | 0) + (this.read12OffsetRegister() | 0)) | 0;
-    this.branchFlags.setCarryFalse();
-    this.branchFlags.setNZInt(result | 0);
-    //Update destination register and guard CPSR for PC:
-    this.multiplyGuard16OffsetRegisterWrite(result | 0);
-};
-ARMInstructionSet.prototype.UMULL = function () {
-    //Perform multiplication:
-    this.CPUCore.performUMUL64(this.read0OffsetRegister() | 0, this.read8OffsetRegister() | 0);
-    //Update destination register:
-    this.multiplyGuard16OffsetRegisterWrite(this.CPUCore.mul64ResultHigh | 0);
-    this.multiplyGuard12OffsetRegisterWrite(this.CPUCore.mul64ResultLow | 0);
-};
-ARMInstructionSet.prototype.UMULLS = function () {
-    //Perform multiplication:
-    this.CPUCore.performUMUL64(this.read0OffsetRegister() | 0, this.read8OffsetRegister() | 0);
-    this.branchFlags.setCarryFalse();
-    this.branchFlags.setNegative(this.CPUCore.mul64ResultHigh | 0);
-    this.branchFlags.setZero(this.CPUCore.mul64ResultHigh | this.CPUCore.mul64ResultLow);
-    //Update destination register and guard CPSR for PC:
-    this.multiplyGuard16OffsetRegisterWrite(this.CPUCore.mul64ResultHigh | 0);
-    this.multiplyGuard12OffsetRegisterWrite(this.CPUCore.mul64ResultLow | 0);
-};
-ARMInstructionSet.prototype.UMLAL = function () {
-    //Perform multiplication:
-    this.CPUCore.performUMLA64(
-        this.read0OffsetRegister() | 0,
-        this.read8OffsetRegister() | 0,
-        this.read16OffsetRegister() | 0,
-        this.read12OffsetRegister() | 0
-    );
-    //Update destination register:
-    this.multiplyGuard16OffsetRegisterWrite(this.CPUCore.mul64ResultHigh | 0);
-    this.multiplyGuard12OffsetRegisterWrite(this.CPUCore.mul64ResultLow | 0);
-};
-ARMInstructionSet.prototype.UMLALS = function () {
-    //Perform multiplication:
-    this.CPUCore.performUMLA64(
-        this.read0OffsetRegister() | 0,
-        this.read8OffsetRegister() | 0,
-        this.read16OffsetRegister() | 0,
-        this.read12OffsetRegister() | 0
-    );
-    this.branchFlags.setCarryFalse();
-    this.branchFlags.setNegative(this.CPUCore.mul64ResultHigh | 0);
-    this.branchFlags.setZero(this.CPUCore.mul64ResultHigh | this.CPUCore.mul64ResultLow);
-    //Update destination register and guard CPSR for PC:
-    this.multiplyGuard16OffsetRegisterWrite(this.CPUCore.mul64ResultHigh | 0);
-    this.multiplyGuard12OffsetRegisterWrite(this.CPUCore.mul64ResultLow | 0);
-};
-ARMInstructionSet.prototype.SMULL = function () {
-    //Perform multiplication:
-    this.CPUCore.performMUL64(this.read0OffsetRegister() | 0, this.read8OffsetRegister() | 0);
-    //Update destination register:
-    this.multiplyGuard16OffsetRegisterWrite(this.CPUCore.mul64ResultHigh | 0);
-    this.multiplyGuard12OffsetRegisterWrite(this.CPUCore.mul64ResultLow | 0);
-};
-ARMInstructionSet.prototype.SMULLS = function () {
-    //Perform multiplication:
-    this.CPUCore.performMUL64(this.read0OffsetRegister() | 0, this.read8OffsetRegister() | 0);
-    this.branchFlags.setCarryFalse();
-    this.branchFlags.setNegative(this.CPUCore.mul64ResultHigh | 0);
-    this.branchFlags.setZero(this.CPUCore.mul64ResultHigh | this.CPUCore.mul64ResultLow);
-    //Update destination register and guard CPSR for PC:
-    this.multiplyGuard16OffsetRegisterWrite(this.CPUCore.mul64ResultHigh | 0);
-    this.multiplyGuard12OffsetRegisterWrite(this.CPUCore.mul64ResultLow | 0);
-};
-ARMInstructionSet.prototype.SMLAL = function () {
-    //Perform multiplication:
-    this.CPUCore.performMLA64(
-        this.read0OffsetRegister() | 0,
-        this.read8OffsetRegister() | 0,
-        this.read16OffsetRegister() | 0,
-        this.read12OffsetRegister() | 0
-    );
-    //Update destination register:
-    this.multiplyGuard16OffsetRegisterWrite(this.CPUCore.mul64ResultHigh | 0);
-    this.multiplyGuard12OffsetRegisterWrite(this.CPUCore.mul64ResultLow | 0);
-};
-ARMInstructionSet.prototype.SMLALS = function () {
-    //Perform multiplication:
-    this.CPUCore.performMLA64(
-        this.read0OffsetRegister() | 0,
-        this.read8OffsetRegister() | 0,
-        this.read16OffsetRegister() | 0,
-        this.read12OffsetRegister() | 0
-    );
-    this.branchFlags.setCarryFalse();
-    this.branchFlags.setNegative(this.CPUCore.mul64ResultHigh | 0);
-    this.branchFlags.setZero(this.CPUCore.mul64ResultHigh | this.CPUCore.mul64ResultLow);
-    //Update destination register and guard CPSR for PC:
-    this.multiplyGuard16OffsetRegisterWrite(this.CPUCore.mul64ResultHigh | 0);
-    this.multiplyGuard12OffsetRegisterWrite(this.CPUCore.mul64ResultLow | 0);
-};
-ARMInstructionSet.prototype.STRH = function () {
-    //Perform halfword store calculations:
-    var address = this.operand2OP_LoadStore1() | 0;
-    //Write to memory location:
-    this.CPUCore.write16(address | 0, this.guard12OffsetRegisterRead() | 0);
-};
-ARMInstructionSet.prototype.LDRH = function () {
-    //Perform halfword load calculations:
-    var address = this.operand2OP_LoadStore1() | 0;
-    //Read from memory location:
-    this.guard12OffsetRegisterWrite(this.CPUCore.read16(address | 0) | 0);
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.LDRSH = function () {
-    //Perform signed halfword load calculations:
-    var address = this.operand2OP_LoadStore1() | 0;
-    //Read from memory location:
-    this.guard12OffsetRegisterWrite((this.CPUCore.read16(address | 0) << 16) >> 16);
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.LDRSB = function () {
-    //Perform signed byte load calculations:
-    var address = this.operand2OP_LoadStore1() | 0;
-    //Read from memory location:
-    this.guard12OffsetRegisterWrite((this.CPUCore.read8(address | 0) << 24) >> 24);
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.STRH2 = function () {
-    //Perform halfword store calculations:
-    var address = this.operand2OP_LoadStore2() | 0;
-    //Write to memory location:
-    this.CPUCore.write16(address | 0, this.guard12OffsetRegisterRead() | 0);
-};
-ARMInstructionSet.prototype.LDRH2 = function () {
-    //Perform halfword load calculations:
-    var address = this.operand2OP_LoadStore2() | 0;
-    //Read from memory location:
-    this.guard12OffsetRegisterWrite(this.CPUCore.read16(address | 0) | 0);
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.LDRSH2 = function () {
-    //Perform signed halfword load calculations:
-    var address = this.operand2OP_LoadStore2() | 0;
-    //Read from memory location:
-    this.guard12OffsetRegisterWrite((this.CPUCore.read16(address | 0) << 16) >> 16);
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.LDRSB2 = function () {
-    //Perform signed byte load calculations:
-    var address = this.operand2OP_LoadStore2() | 0;
-    //Read from memory location:
-    this.guard12OffsetRegisterWrite((this.CPUCore.read8(address | 0) << 24) >> 24);
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.STR = function () {
-    //Perform word store calculations:
-    var address = this.operand2OP_LoadStore3Normal() | 0;
-    //Write to memory location:
-    this.CPUCore.write32(address | 0, this.guard12OffsetRegisterRead() | 0);
-};
-ARMInstructionSet.prototype.LDR = function () {
-    //Perform word load calculations:
-    var address = this.operand2OP_LoadStore3Normal() | 0;
-    //Read from memory location:
-    this.guard12OffsetRegisterWrite(this.CPUCore.read32(address | 0) | 0);
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.STRB = function () {
-    //Perform byte store calculations:
-    var address = this.operand2OP_LoadStore3Normal() | 0;
-    //Write to memory location:
-    this.CPUCore.write8(address | 0, this.guard12OffsetRegisterRead() | 0);
-};
-ARMInstructionSet.prototype.LDRB = function () {
-    //Perform byte store calculations:
-    var address = this.operand2OP_LoadStore3Normal() | 0;
-    //Read from memory location:
-    this.guard12OffsetRegisterWrite(this.CPUCore.read8(address | 0) | 0);
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.STR4 = function () {
-    //Perform word store calculations:
-    var address = this.operand2OP_LoadStore4() | 0;
-    //Write to memory location:
-    this.CPUCore.write32(address | 0, this.guard12OffsetRegisterRead() | 0);
-};
-ARMInstructionSet.prototype.LDR4 = function () {
-    //Perform word load calculations:
-    var address = this.operand2OP_LoadStore4() | 0;
-    //Read from memory location:
-    this.guard12OffsetRegisterWrite(this.CPUCore.read32(address | 0) | 0);
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.STRB4 = function () {
-    //Perform byte store calculations:
-    var address = this.operand2OP_LoadStore4() | 0;
-    //Write to memory location:
-    this.CPUCore.write8(address | 0, this.guard12OffsetRegisterRead() | 0);
-};
-ARMInstructionSet.prototype.LDRB4 = function () {
-    //Perform byte store calculations:
-    var address = this.operand2OP_LoadStore4() | 0;
-    //Read from memory location:
-    this.guard12OffsetRegisterWrite(this.CPUCore.read8(address | 0) | 0);
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.STRT = function () {
-    //Perform word store calculations (forced user-mode):
-    var address = this.operand2OP_LoadStore3User() | 0;
-    //Write to memory location:
-    this.CPUCore.write32(address | 0, this.guard12OffsetRegisterRead() | 0);
-};
-ARMInstructionSet.prototype.LDRT = function () {
-    //Perform word load calculations (forced user-mode):
-    var address = this.operand2OP_LoadStore3User() | 0;
-    //Read from memory location:
-    this.guard12OffsetRegisterWrite(this.CPUCore.read32(address | 0) | 0);
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.STRBT = function () {
-    //Perform byte store calculations (forced user-mode):
-    var address = this.operand2OP_LoadStore3User() | 0;
-    //Write to memory location:
-    this.CPUCore.write8(address | 0, this.guard12OffsetRegisterRead() | 0);
-};
-ARMInstructionSet.prototype.LDRBT = function () {
-    //Perform byte load calculations (forced user-mode):
-    var address = this.operand2OP_LoadStore3User() | 0;
-    //Read from memory location:
-    this.guard12OffsetRegisterWrite(this.CPUCore.read8(address | 0) | 0);
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.STR2 = function () {
-    //Perform word store calculations:
-    var address = this.operand2OP_LoadStore5Normal() | 0;
-    //Write to memory location:
-    this.CPUCore.write32(address | 0, this.guard12OffsetRegisterRead() | 0);
-};
-ARMInstructionSet.prototype.LDR2 = function () {
-    //Perform word load calculations:
-    var address = this.operand2OP_LoadStore5Normal() | 0;
-    //Read from memory location:
-    this.guard12OffsetRegisterWrite(this.CPUCore.read32(address | 0) | 0);
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.STRB2 = function () {
-    //Perform byte store calculations:
-    var address = this.operand2OP_LoadStore5Normal() | 0;
-    //Write to memory location:
-    this.CPUCore.write8(address | 0, this.guard12OffsetRegisterRead() | 0);
-};
-ARMInstructionSet.prototype.LDRB2 = function () {
-    //Perform byte store calculations:
-    var address = this.operand2OP_LoadStore5Normal() | 0;
-    //Read from memory location:
-    this.guard12OffsetRegisterWrite(this.CPUCore.read8(address | 0) | 0);
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.STRT2 = function () {
-    //Perform word store calculations (forced user-mode):
-    var address = this.operand2OP_LoadStore5User() | 0;
-    //Write to memory location:
-    this.CPUCore.write32(address | 0, this.guard12OffsetRegisterRead() | 0);
-};
-ARMInstructionSet.prototype.LDRT2 = function () {
-    //Perform word load calculations (forced user-mode):
-    var address = this.operand2OP_LoadStore5User() | 0;
-    //Read from memory location:
-    this.guard12OffsetRegisterWrite(this.CPUCore.read32(address | 0) | 0);
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.STRBT2 = function () {
-    //Perform byte store calculations (forced user-mode):
-    var address = this.operand2OP_LoadStore5User() | 0;
-    //Write to memory location:
-    this.CPUCore.write8(address | 0, this.guard12OffsetRegisterRead() | 0);
-};
-ARMInstructionSet.prototype.LDRBT2 = function () {
-    //Perform byte load calculations (forced user-mode):
-    var address = this.operand2OP_LoadStore5User() | 0;
-    //Read from memory location:
-    this.guard12OffsetRegisterWrite(this.CPUCore.read8(address | 0) | 0);
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.STR3 = function () {
-    //Perform word store calculations:
-    var address = this.operand2OP_LoadStore6() | 0;
-    //Write to memory location:
-    this.CPUCore.write32(address | 0, this.guard12OffsetRegisterRead() | 0);
-};
-ARMInstructionSet.prototype.LDR3 = function () {
-    //Perform word load calculations:
-    var address = this.operand2OP_LoadStore6() | 0;
-    //Read from memory location:
-    this.guard12OffsetRegisterWrite(this.CPUCore.read32(address | 0) | 0);
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.STRB3 = function () {
-    //Perform byte store calculations:
-    var address = this.operand2OP_LoadStore6() | 0;
-    //Write to memory location:
-    this.CPUCore.write8(address | 0, this.guard12OffsetRegisterRead() | 0);
-};
-ARMInstructionSet.prototype.LDRB3 = function () {
-    //Perform byte store calculations:
-    var address = this.operand2OP_LoadStore6() | 0;
-    //Read from memory location:
-    this.guard12OffsetRegisterWrite(this.CPUCore.read8(address | 0) | 0);
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.STMIA = function () {
-    //Only initialize the STMIA sequence if the register list is non-empty:
-    if ((this.execute & 0xffff) > 0) {
-        //Get the base address:
-        var currentAddress = this.read16OffsetRegister() | 0;
-        //Updating the address bus away from PC fetch:
-        this.wait.NonSequentialBroadcast();
-        //Push register(s) into memory:
-        for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Push a register into memory:
-                this.memory.memoryWrite32(currentAddress | 0, this.readRegister(rListPosition | 0) | 0);
-                currentAddress = ((currentAddress | 0) + 4) | 0;
-            }
+    MSR() {
+        switch (this.execute & 0x2400000) {
+            case 0:
+                //Reg->CPSR
+                this.MSR1();
+                break;
+            case 0x400000:
+                //Reg->SPSR
+                this.MSR2();
+                break;
+            case 0x2000000:
+                //Immediate->CPSR
+                this.MSR3();
+                break;
+            default:
+                //Immediate->SPSR
+                this.MSR4();
         }
-        //Updating the address bus back to PC fetch:
-        this.wait.NonSequentialBroadcast();
+        //Increment PC:
+        this.incrementProgramCounter();
     }
-};
-ARMInstructionSet.prototype.STMIAW = function () {
-    //Only initialize the STMIA sequence if the register list is non-empty:
-    if ((this.execute & 0xffff) > 0) {
-        //Get the base address:
-        var currentAddress = this.read16OffsetRegister() | 0;
-        var finalAddress = this.getPositiveOffsetStartAddress(currentAddress | 0) | 0;
-        //Updating the address bus away from PC fetch:
-        this.wait.NonSequentialBroadcast();
-        //Push register(s) into memory:
-        var count = 0;
-        for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Push a register into memory:
-                this.memory.memoryWrite32(currentAddress | 0, this.readRegister(rListPosition | 0) | 0);
-                currentAddress = ((currentAddress | 0) + 4) | 0;
-                //Compute writeback immediately after the first register load:
-                if ((count | 0) == 0) {
-                    count = 1;
-                    //Store the updated base address back into register:
-                    this.guard16OffsetRegisterWrite(finalAddress | 0);
+    MSR1() {
+        var newcpsr = this.read0OffsetRegister() | 0;
+        this.branchFlags.setNZCV(newcpsr | 0);
+        if ((this.execute & 0x10000) != 0 && (this.CPUCore.modeFlags & 0x1f) != 0x10) {
+            this.CPUCore.switchRegisterBank(newcpsr & 0x1f);
+            this.CPUCore.modeFlags = newcpsr & 0xdf;
+            this.CPUCore.assertIRQ();
+        }
+    }
+    MSR2() {
+        var operand = this.read0OffsetRegister() | 0;
+        var bank = 1;
+        switch (this.CPUCore.modeFlags & 0x1f) {
+            case 0x12: //IRQ
+                break;
+            case 0x13: //Supervisor
+                bank = 2;
+                break;
+            case 0x11: //FIQ
+                bank = 0;
+                break;
+            case 0x17: //Abort
+                bank = 3;
+                break;
+            case 0x1b: //Undefined
+                bank = 4;
+                break;
+            default:
+                return;
+        }
+        var spsr = (operand >> 20) & 0xf00;
+        if ((this.execute & 0x10000) != 0) {
+            spsr = spsr | (operand & 0xff);
+        } else {
+            spsr = spsr | (this.CPUCore.SPSR[bank | 0] & 0xff);
+        }
+        this.CPUCore.SPSR[bank | 0] = spsr | 0;
+    }
+    MSR3() {
+        var operand = this.imm() | 0;
+        this.branchFlags.setNZCV(operand | 0);
+    }
+    MSR4() {
+        var operand = this.imm() >> 20;
+        var bank = 1;
+        switch (this.CPUCore.modeFlags & 0x1f) {
+            case 0x12: //IRQ
+                break;
+            case 0x13: //Supervisor
+                bank = 2;
+                break;
+            case 0x11: //FIQ
+                bank = 0;
+                break;
+            case 0x17: //Abort
+                bank = 3;
+                break;
+            case 0x1b: //Undefined
+                bank = 4;
+                break;
+            default:
+                return;
+        }
+        var spsr = this.CPUCore.SPSR[bank | 0] & 0xff;
+        this.CPUCore.SPSR[bank | 0] = spsr | (operand & 0xf00);
+    }
+    MUL() {
+        //Perform multiplication:
+        var result = this.performMUL32() | 0;
+        //Update destination register:
+        this.multiplyGuard16OffsetRegisterWrite(result | 0);
+    }
+    MULS() {
+        //Perform multiplication:
+        var result = this.performMUL32() | 0;
+        this.branchFlags.setCarryFalse();
+        this.branchFlags.setNZInt(result | 0);
+        //Update destination register and guard CPSR for PC:
+        this.multiplyGuard16OffsetRegisterWrite(result | 0);
+    }
+    MLA() {
+        //Perform multiplication:
+        var result = this.performMUL32MLA() | 0;
+        //Perform addition:
+        result = ((result | 0) + (this.read12OffsetRegister() | 0)) | 0;
+        //Update destination register:
+        this.multiplyGuard16OffsetRegisterWrite(result | 0);
+    }
+    MLAS() {
+        //Perform multiplication:
+        var result = this.performMUL32MLA() | 0;
+        //Perform addition:
+        result = ((result | 0) + (this.read12OffsetRegister() | 0)) | 0;
+        this.branchFlags.setCarryFalse();
+        this.branchFlags.setNZInt(result | 0);
+        //Update destination register and guard CPSR for PC:
+        this.multiplyGuard16OffsetRegisterWrite(result | 0);
+    }
+    UMULL() {
+        //Perform multiplication:
+        this.CPUCore.performUMUL64(this.read0OffsetRegister() | 0, this.read8OffsetRegister() | 0);
+        //Update destination register:
+        this.multiplyGuard16OffsetRegisterWrite(this.CPUCore.mul64ResultHigh | 0);
+        this.multiplyGuard12OffsetRegisterWrite(this.CPUCore.mul64ResultLow | 0);
+    }
+    UMULLS() {
+        //Perform multiplication:
+        this.CPUCore.performUMUL64(this.read0OffsetRegister() | 0, this.read8OffsetRegister() | 0);
+        this.branchFlags.setCarryFalse();
+        this.branchFlags.setNegative(this.CPUCore.mul64ResultHigh | 0);
+        this.branchFlags.setZero(this.CPUCore.mul64ResultHigh | this.CPUCore.mul64ResultLow);
+        //Update destination register and guard CPSR for PC:
+        this.multiplyGuard16OffsetRegisterWrite(this.CPUCore.mul64ResultHigh | 0);
+        this.multiplyGuard12OffsetRegisterWrite(this.CPUCore.mul64ResultLow | 0);
+    }
+    UMLAL() {
+        //Perform multiplication:
+        this.CPUCore.performUMLA64(
+            this.read0OffsetRegister() | 0,
+            this.read8OffsetRegister() | 0,
+            this.read16OffsetRegister() | 0,
+            this.read12OffsetRegister() | 0
+        );
+        //Update destination register:
+        this.multiplyGuard16OffsetRegisterWrite(this.CPUCore.mul64ResultHigh | 0);
+        this.multiplyGuard12OffsetRegisterWrite(this.CPUCore.mul64ResultLow | 0);
+    }
+    UMLALS() {
+        //Perform multiplication:
+        this.CPUCore.performUMLA64(
+            this.read0OffsetRegister() | 0,
+            this.read8OffsetRegister() | 0,
+            this.read16OffsetRegister() | 0,
+            this.read12OffsetRegister() | 0
+        );
+        this.branchFlags.setCarryFalse();
+        this.branchFlags.setNegative(this.CPUCore.mul64ResultHigh | 0);
+        this.branchFlags.setZero(this.CPUCore.mul64ResultHigh | this.CPUCore.mul64ResultLow);
+        //Update destination register and guard CPSR for PC:
+        this.multiplyGuard16OffsetRegisterWrite(this.CPUCore.mul64ResultHigh | 0);
+        this.multiplyGuard12OffsetRegisterWrite(this.CPUCore.mul64ResultLow | 0);
+    }
+    SMULL() {
+        //Perform multiplication:
+        this.CPUCore.performMUL64(this.read0OffsetRegister() | 0, this.read8OffsetRegister() | 0);
+        //Update destination register:
+        this.multiplyGuard16OffsetRegisterWrite(this.CPUCore.mul64ResultHigh | 0);
+        this.multiplyGuard12OffsetRegisterWrite(this.CPUCore.mul64ResultLow | 0);
+    }
+    SMULLS() {
+        //Perform multiplication:
+        this.CPUCore.performMUL64(this.read0OffsetRegister() | 0, this.read8OffsetRegister() | 0);
+        this.branchFlags.setCarryFalse();
+        this.branchFlags.setNegative(this.CPUCore.mul64ResultHigh | 0);
+        this.branchFlags.setZero(this.CPUCore.mul64ResultHigh | this.CPUCore.mul64ResultLow);
+        //Update destination register and guard CPSR for PC:
+        this.multiplyGuard16OffsetRegisterWrite(this.CPUCore.mul64ResultHigh | 0);
+        this.multiplyGuard12OffsetRegisterWrite(this.CPUCore.mul64ResultLow | 0);
+    }
+    SMLAL() {
+        //Perform multiplication:
+        this.CPUCore.performMLA64(
+            this.read0OffsetRegister() | 0,
+            this.read8OffsetRegister() | 0,
+            this.read16OffsetRegister() | 0,
+            this.read12OffsetRegister() | 0
+        );
+        //Update destination register:
+        this.multiplyGuard16OffsetRegisterWrite(this.CPUCore.mul64ResultHigh | 0);
+        this.multiplyGuard12OffsetRegisterWrite(this.CPUCore.mul64ResultLow | 0);
+    }
+    SMLALS() {
+        //Perform multiplication:
+        this.CPUCore.performMLA64(
+            this.read0OffsetRegister() | 0,
+            this.read8OffsetRegister() | 0,
+            this.read16OffsetRegister() | 0,
+            this.read12OffsetRegister() | 0
+        );
+        this.branchFlags.setCarryFalse();
+        this.branchFlags.setNegative(this.CPUCore.mul64ResultHigh | 0);
+        this.branchFlags.setZero(this.CPUCore.mul64ResultHigh | this.CPUCore.mul64ResultLow);
+        //Update destination register and guard CPSR for PC:
+        this.multiplyGuard16OffsetRegisterWrite(this.CPUCore.mul64ResultHigh | 0);
+        this.multiplyGuard12OffsetRegisterWrite(this.CPUCore.mul64ResultLow | 0);
+    }
+    STRH() {
+        //Perform halfword store calculations:
+        var address = this.operand2OP_LoadStore1() | 0;
+        //Write to memory location:
+        this.CPUCore.write16(address | 0, this.guard12OffsetRegisterRead() | 0);
+    }
+    LDRH() {
+        //Perform halfword load calculations:
+        var address = this.operand2OP_LoadStore1() | 0;
+        //Read from memory location:
+        this.guard12OffsetRegisterWrite(this.CPUCore.read16(address | 0) | 0);
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
+    }
+    LDRSH() {
+        //Perform signed halfword load calculations:
+        var address = this.operand2OP_LoadStore1() | 0;
+        //Read from memory location:
+        this.guard12OffsetRegisterWrite((this.CPUCore.read16(address | 0) << 16) >> 16);
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
+    }
+    LDRSB() {
+        //Perform signed byte load calculations:
+        var address = this.operand2OP_LoadStore1() | 0;
+        //Read from memory location:
+        this.guard12OffsetRegisterWrite((this.CPUCore.read8(address | 0) << 24) >> 24);
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
+    }
+    STRH2() {
+        //Perform halfword store calculations:
+        var address = this.operand2OP_LoadStore2() | 0;
+        //Write to memory location:
+        this.CPUCore.write16(address | 0, this.guard12OffsetRegisterRead() | 0);
+    }
+    LDRH2() {
+        //Perform halfword load calculations:
+        var address = this.operand2OP_LoadStore2() | 0;
+        //Read from memory location:
+        this.guard12OffsetRegisterWrite(this.CPUCore.read16(address | 0) | 0);
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
+    }
+    LDRSH2() {
+        //Perform signed halfword load calculations:
+        var address = this.operand2OP_LoadStore2() | 0;
+        //Read from memory location:
+        this.guard12OffsetRegisterWrite((this.CPUCore.read16(address | 0) << 16) >> 16);
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
+    }
+    LDRSB2() {
+        //Perform signed byte load calculations:
+        var address = this.operand2OP_LoadStore2() | 0;
+        //Read from memory location:
+        this.guard12OffsetRegisterWrite((this.CPUCore.read8(address | 0) << 24) >> 24);
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
+    }
+    STR() {
+        //Perform word store calculations:
+        var address = this.operand2OP_LoadStore3Normal() | 0;
+        //Write to memory location:
+        this.CPUCore.write32(address | 0, this.guard12OffsetRegisterRead() | 0);
+    }
+    LDR() {
+        //Perform word load calculations:
+        var address = this.operand2OP_LoadStore3Normal() | 0;
+        //Read from memory location:
+        this.guard12OffsetRegisterWrite(this.CPUCore.read32(address | 0) | 0);
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
+    }
+    STRB() {
+        //Perform byte store calculations:
+        var address = this.operand2OP_LoadStore3Normal() | 0;
+        //Write to memory location:
+        this.CPUCore.write8(address | 0, this.guard12OffsetRegisterRead() | 0);
+    }
+    LDRB() {
+        //Perform byte store calculations:
+        var address = this.operand2OP_LoadStore3Normal() | 0;
+        //Read from memory location:
+        this.guard12OffsetRegisterWrite(this.CPUCore.read8(address | 0) | 0);
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
+    }
+    STR4() {
+        //Perform word store calculations:
+        var address = this.operand2OP_LoadStore4() | 0;
+        //Write to memory location:
+        this.CPUCore.write32(address | 0, this.guard12OffsetRegisterRead() | 0);
+    }
+    LDR4() {
+        //Perform word load calculations:
+        var address = this.operand2OP_LoadStore4() | 0;
+        //Read from memory location:
+        this.guard12OffsetRegisterWrite(this.CPUCore.read32(address | 0) | 0);
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
+    }
+    STRB4() {
+        //Perform byte store calculations:
+        var address = this.operand2OP_LoadStore4() | 0;
+        //Write to memory location:
+        this.CPUCore.write8(address | 0, this.guard12OffsetRegisterRead() | 0);
+    }
+    LDRB4() {
+        //Perform byte store calculations:
+        var address = this.operand2OP_LoadStore4() | 0;
+        //Read from memory location:
+        this.guard12OffsetRegisterWrite(this.CPUCore.read8(address | 0) | 0);
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
+    }
+    STRT() {
+        //Perform word store calculations (forced user-mode):
+        var address = this.operand2OP_LoadStore3User() | 0;
+        //Write to memory location:
+        this.CPUCore.write32(address | 0, this.guard12OffsetRegisterRead() | 0);
+    }
+    LDRT() {
+        //Perform word load calculations (forced user-mode):
+        var address = this.operand2OP_LoadStore3User() | 0;
+        //Read from memory location:
+        this.guard12OffsetRegisterWrite(this.CPUCore.read32(address | 0) | 0);
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
+    }
+    STRBT() {
+        //Perform byte store calculations (forced user-mode):
+        var address = this.operand2OP_LoadStore3User() | 0;
+        //Write to memory location:
+        this.CPUCore.write8(address | 0, this.guard12OffsetRegisterRead() | 0);
+    }
+    LDRBT() {
+        //Perform byte load calculations (forced user-mode):
+        var address = this.operand2OP_LoadStore3User() | 0;
+        //Read from memory location:
+        this.guard12OffsetRegisterWrite(this.CPUCore.read8(address | 0) | 0);
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
+    }
+    STR2() {
+        //Perform word store calculations:
+        var address = this.operand2OP_LoadStore5Normal() | 0;
+        //Write to memory location:
+        this.CPUCore.write32(address | 0, this.guard12OffsetRegisterRead() | 0);
+    }
+    LDR2() {
+        //Perform word load calculations:
+        var address = this.operand2OP_LoadStore5Normal() | 0;
+        //Read from memory location:
+        this.guard12OffsetRegisterWrite(this.CPUCore.read32(address | 0) | 0);
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
+    }
+    STRB2() {
+        //Perform byte store calculations:
+        var address = this.operand2OP_LoadStore5Normal() | 0;
+        //Write to memory location:
+        this.CPUCore.write8(address | 0, this.guard12OffsetRegisterRead() | 0);
+    }
+    LDRB2() {
+        //Perform byte store calculations:
+        var address = this.operand2OP_LoadStore5Normal() | 0;
+        //Read from memory location:
+        this.guard12OffsetRegisterWrite(this.CPUCore.read8(address | 0) | 0);
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
+    }
+    STRT2() {
+        //Perform word store calculations (forced user-mode):
+        var address = this.operand2OP_LoadStore5User() | 0;
+        //Write to memory location:
+        this.CPUCore.write32(address | 0, this.guard12OffsetRegisterRead() | 0);
+    }
+    LDRT2() {
+        //Perform word load calculations (forced user-mode):
+        var address = this.operand2OP_LoadStore5User() | 0;
+        //Read from memory location:
+        this.guard12OffsetRegisterWrite(this.CPUCore.read32(address | 0) | 0);
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
+    }
+    STRBT2() {
+        //Perform byte store calculations (forced user-mode):
+        var address = this.operand2OP_LoadStore5User() | 0;
+        //Write to memory location:
+        this.CPUCore.write8(address | 0, this.guard12OffsetRegisterRead() | 0);
+    }
+    LDRBT2() {
+        //Perform byte load calculations (forced user-mode):
+        var address = this.operand2OP_LoadStore5User() | 0;
+        //Read from memory location:
+        this.guard12OffsetRegisterWrite(this.CPUCore.read8(address | 0) | 0);
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
+    }
+    STR3() {
+        //Perform word store calculations:
+        var address = this.operand2OP_LoadStore6() | 0;
+        //Write to memory location:
+        this.CPUCore.write32(address | 0, this.guard12OffsetRegisterRead() | 0);
+    }
+    LDR3() {
+        //Perform word load calculations:
+        var address = this.operand2OP_LoadStore6() | 0;
+        //Read from memory location:
+        this.guard12OffsetRegisterWrite(this.CPUCore.read32(address | 0) | 0);
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
+    }
+    STRB3() {
+        //Perform byte store calculations:
+        var address = this.operand2OP_LoadStore6() | 0;
+        //Write to memory location:
+        this.CPUCore.write8(address | 0, this.guard12OffsetRegisterRead() | 0);
+    }
+    LDRB3() {
+        //Perform byte store calculations:
+        var address = this.operand2OP_LoadStore6() | 0;
+        //Read from memory location:
+        this.guard12OffsetRegisterWrite(this.CPUCore.read8(address | 0) | 0);
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
+    }
+    STMIA() {
+        //Only initialize the STMIA sequence if the register list is non-empty:
+        if ((this.execute & 0xffff) > 0) {
+            //Get the base address:
+            var currentAddress = this.read16OffsetRegister() | 0;
+            //Updating the address bus away from PC fetch:
+            this.wait.NonSequentialBroadcast();
+            //Push register(s) into memory:
+            for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Push a register into memory:
+                    this.memory.memoryWrite32(currentAddress | 0, this.readRegister(rListPosition | 0) | 0);
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
                 }
             }
+            //Updating the address bus back to PC fetch:
+            this.wait.NonSequentialBroadcast();
         }
-        //Updating the address bus back to PC fetch:
-        this.wait.NonSequentialBroadcast();
     }
-};
-ARMInstructionSet.prototype.STMDA = function () {
-    //Only initialize the STMDA sequence if the register list is non-empty:
-    if ((this.execute & 0xffff) > 0) {
-        //Get the base address:
-        var currentAddress = this.read16OffsetRegister() | 0;
-        //Get offset start address:
-        currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
-        //Updating the address bus away from PC fetch:
-        this.wait.NonSequentialBroadcast();
-        //Push register(s) into memory:
-        for (var rListPosition = 0; (rListPosition | 0) < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Push a register into memory:
-                currentAddress = ((currentAddress | 0) + 4) | 0;
-                this.memory.memoryWrite32(currentAddress | 0, this.readRegister(rListPosition | 0) | 0);
-            }
-        }
-        //Updating the address bus back to PC fetch:
-        this.wait.NonSequentialBroadcast();
-    }
-};
-ARMInstructionSet.prototype.STMDAW = function () {
-    //Only initialize the STMDA sequence if the register list is non-empty:
-    if ((this.execute & 0xffff) > 0) {
-        //Get the base address:
-        var currentAddress = this.read16OffsetRegister() | 0;
-        //Get offset start address:
-        currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
-        var finalAddress = currentAddress | 0;
-        //Updating the address bus away from PC fetch:
-        this.wait.NonSequentialBroadcast();
-        //Push register(s) into memory:
-        var count = 0;
-        for (var rListPosition = 0; (rListPosition | 0) < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Push a register into memory:
-                currentAddress = ((currentAddress | 0) + 4) | 0;
-                this.memory.memoryWrite32(currentAddress | 0, this.readRegister(rListPosition | 0) | 0);
-                //Compute writeback immediately after the first register load:
-                if ((count | 0) == 0) {
-                    count = 1;
-                    //Store the updated base address back into register:
-                    this.guard16OffsetRegisterWrite(finalAddress | 0);
+    STMIAW() {
+        //Only initialize the STMIA sequence if the register list is non-empty:
+        if ((this.execute & 0xffff) > 0) {
+            //Get the base address:
+            var currentAddress = this.read16OffsetRegister() | 0;
+            var finalAddress = this.getPositiveOffsetStartAddress(currentAddress | 0) | 0;
+            //Updating the address bus away from PC fetch:
+            this.wait.NonSequentialBroadcast();
+            //Push register(s) into memory:
+            var count = 0;
+            for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Push a register into memory:
+                    this.memory.memoryWrite32(currentAddress | 0, this.readRegister(rListPosition | 0) | 0);
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
+                    //Compute writeback immediately after the first register load:
+                    if ((count | 0) == 0) {
+                        count = 1;
+                        //Store the updated base address back into register:
+                        this.guard16OffsetRegisterWrite(finalAddress | 0);
+                    }
                 }
             }
+            //Updating the address bus back to PC fetch:
+            this.wait.NonSequentialBroadcast();
         }
-        //Updating the address bus back to PC fetch:
-        this.wait.NonSequentialBroadcast();
     }
-};
-ARMInstructionSet.prototype.STMIB = function () {
-    //Only initialize the STMIB sequence if the register list is non-empty:
-    if ((this.execute & 0xffff) > 0) {
-        //Get the base address:
-        var currentAddress = this.read16OffsetRegister() | 0;
-        //Updating the address bus away from PC fetch:
-        this.wait.NonSequentialBroadcast();
-        //Push register(s) into memory:
-        for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Push a register into memory:
-                currentAddress = ((currentAddress | 0) + 4) | 0;
-                this.memory.memoryWrite32(currentAddress | 0, this.readRegister(rListPosition | 0) | 0);
-            }
-        }
-        //Updating the address bus back to PC fetch:
-        this.wait.NonSequentialBroadcast();
-    }
-};
-ARMInstructionSet.prototype.STMIBW = function () {
-    //Only initialize the STMIB sequence if the register list is non-empty:
-    if ((this.execute & 0xffff) > 0) {
-        //Get the base address:
-        var currentAddress = this.read16OffsetRegister() | 0;
-        var finalAddress = this.getPositiveOffsetStartAddress(currentAddress | 0) | 0;
-        //Updating the address bus away from PC fetch:
-        this.wait.NonSequentialBroadcast();
-        //Push register(s) into memory:
-        var count = 0;
-        for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Push a register into memory:
-                currentAddress = ((currentAddress | 0) + 4) | 0;
-                this.memory.memoryWrite32(currentAddress | 0, this.readRegister(rListPosition | 0) | 0);
-                //Compute writeback immediately after the first register load:
-                if ((count | 0) == 0) {
-                    count = 1;
-                    //Store the updated base address back into register:
-                    this.guard16OffsetRegisterWrite(finalAddress | 0);
+    STMDA() {
+        //Only initialize the STMDA sequence if the register list is non-empty:
+        if ((this.execute & 0xffff) > 0) {
+            //Get the base address:
+            var currentAddress = this.read16OffsetRegister() | 0;
+            //Get offset start address:
+            currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
+            //Updating the address bus away from PC fetch:
+            this.wait.NonSequentialBroadcast();
+            //Push register(s) into memory:
+            for (var rListPosition = 0; (rListPosition | 0) < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Push a register into memory:
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
+                    this.memory.memoryWrite32(currentAddress | 0, this.readRegister(rListPosition | 0) | 0);
                 }
             }
+            //Updating the address bus back to PC fetch:
+            this.wait.NonSequentialBroadcast();
         }
-        //Updating the address bus back to PC fetch:
-        this.wait.NonSequentialBroadcast();
     }
-};
-ARMInstructionSet.prototype.STMDB = function () {
-    //Only initialize the STMDB sequence if the register list is non-empty:
-    if ((this.execute & 0xffff) > 0) {
-        //Get the base address:
-        var currentAddress = this.read16OffsetRegister() | 0;
-        //Get offset start address:
-        currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
-        //Updating the address bus away from PC fetch:
-        this.wait.NonSequentialBroadcast();
-        //Push register(s) into memory:
-        for (var rListPosition = 0; (rListPosition | 0) < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Push a register into memory:
-                this.memory.memoryWrite32(currentAddress | 0, this.readRegister(rListPosition | 0) | 0);
-                currentAddress = ((currentAddress | 0) + 4) | 0;
-            }
-        }
-        //Updating the address bus back to PC fetch:
-        this.wait.NonSequentialBroadcast();
-    }
-};
-ARMInstructionSet.prototype.STMDBW = function () {
-    //Only initialize the STMDB sequence if the register list is non-empty:
-    if ((this.execute & 0xffff) > 0) {
-        //Get the base address:
-        var currentAddress = this.read16OffsetRegister() | 0;
-        //Get offset start address:
-        currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
-        var finalAddress = currentAddress | 0;
-        //Updating the address bus away from PC fetch:
-        this.wait.NonSequentialBroadcast();
-        //Push register(s) into memory:
-        var count = 0;
-        for (var rListPosition = 0; (rListPosition | 0) < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Push a register into memory:
-                this.memory.memoryWrite32(currentAddress | 0, this.readRegister(rListPosition | 0) | 0);
-                currentAddress = ((currentAddress | 0) + 4) | 0;
-                //Compute writeback immediately after the first register load:
-                if ((count | 0) == 0) {
-                    count = 1;
-                    //Store the updated base address back into register:
-                    this.guard16OffsetRegisterWrite(finalAddress | 0);
+    STMDAW() {
+        //Only initialize the STMDA sequence if the register list is non-empty:
+        if ((this.execute & 0xffff) > 0) {
+            //Get the base address:
+            var currentAddress = this.read16OffsetRegister() | 0;
+            //Get offset start address:
+            currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
+            var finalAddress = currentAddress | 0;
+            //Updating the address bus away from PC fetch:
+            this.wait.NonSequentialBroadcast();
+            //Push register(s) into memory:
+            var count = 0;
+            for (var rListPosition = 0; (rListPosition | 0) < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Push a register into memory:
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
+                    this.memory.memoryWrite32(currentAddress | 0, this.readRegister(rListPosition | 0) | 0);
+                    //Compute writeback immediately after the first register load:
+                    if ((count | 0) == 0) {
+                        count = 1;
+                        //Store the updated base address back into register:
+                        this.guard16OffsetRegisterWrite(finalAddress | 0);
+                    }
                 }
             }
+            //Updating the address bus back to PC fetch:
+            this.wait.NonSequentialBroadcast();
         }
-        //Updating the address bus back to PC fetch:
-        this.wait.NonSequentialBroadcast();
     }
-};
-ARMInstructionSet.prototype.STMIAG = function () {
-    //Only initialize the STMIA sequence if the register list is non-empty:
-    if ((this.execute & 0xffff) > 0) {
-        //Get the base address:
-        var currentAddress = this.read16OffsetRegister() | 0;
-        //Updating the address bus away from PC fetch:
-        this.wait.NonSequentialBroadcast();
-        //Push register(s) into memory:
-        for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Push a register into memory:
-                this.memory.memoryWrite32(currentAddress | 0, this.guardUserRegisterRead(rListPosition | 0) | 0);
-                currentAddress = ((currentAddress | 0) + 4) | 0;
-            }
-        }
-        //Updating the address bus back to PC fetch:
-        this.wait.NonSequentialBroadcast();
-    }
-};
-ARMInstructionSet.prototype.STMIAWG = function () {
-    //Only initialize the STMIA sequence if the register list is non-empty:
-    if ((this.execute & 0xffff) > 0) {
-        //Get the base address:
-        var currentAddress = this.read16OffsetRegister() | 0;
-        var finalAddress = this.getPositiveOffsetStartAddress(currentAddress | 0) | 0;
-        //Updating the address bus away from PC fetch:
-        this.wait.NonSequentialBroadcast();
-        //Push register(s) into memory:
-        var count = 0;
-        for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Push a register into memory:
-                this.memory.memoryWrite32(currentAddress | 0, this.guardUserRegisterRead(rListPosition | 0) | 0);
-                currentAddress = ((currentAddress | 0) + 4) | 0;
-                //Compute writeback immediately after the first register load:
-                if ((count | 0) == 0) {
-                    count = 1;
-                    //Store the updated base address back into register:
-                    this.guard16OffsetRegisterWrite(finalAddress | 0);
+    STMIB() {
+        //Only initialize the STMIB sequence if the register list is non-empty:
+        if ((this.execute & 0xffff) > 0) {
+            //Get the base address:
+            var currentAddress = this.read16OffsetRegister() | 0;
+            //Updating the address bus away from PC fetch:
+            this.wait.NonSequentialBroadcast();
+            //Push register(s) into memory:
+            for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Push a register into memory:
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
+                    this.memory.memoryWrite32(currentAddress | 0, this.readRegister(rListPosition | 0) | 0);
                 }
             }
+            //Updating the address bus back to PC fetch:
+            this.wait.NonSequentialBroadcast();
         }
-        //Updating the address bus back to PC fetch:
-        this.wait.NonSequentialBroadcast();
     }
-};
-ARMInstructionSet.prototype.STMDAG = function () {
-    //Only initialize the STMDA sequence if the register list is non-empty:
-    if ((this.execute & 0xffff) > 0) {
-        //Get the base address:
-        var currentAddress = this.read16OffsetRegister() | 0;
-        //Get offset start address:
-        currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
-        //Updating the address bus away from PC fetch:
-        this.wait.NonSequentialBroadcast();
-        //Push register(s) into memory:
-        for (var rListPosition = 0; (rListPosition | 0) < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Push a register into memory:
-                currentAddress = ((currentAddress | 0) + 4) | 0;
-                this.memory.memoryWrite32(currentAddress | 0, this.guardUserRegisterRead(rListPosition | 0) | 0);
-            }
-        }
-        //Updating the address bus back to PC fetch:
-        this.wait.NonSequentialBroadcast();
-    }
-};
-ARMInstructionSet.prototype.STMDAWG = function () {
-    //Only initialize the STMDA sequence if the register list is non-empty:
-    if ((this.execute & 0xffff) > 0) {
-        //Get the base address:
-        var currentAddress = this.read16OffsetRegister() | 0;
-        //Get offset start address:
-        currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
-        var finalAddress = currentAddress | 0;
-        //Updating the address bus away from PC fetch:
-        this.wait.NonSequentialBroadcast();
-        //Push register(s) into memory:
-        var count = 0;
-        for (var rListPosition = 0; (rListPosition | 0) < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Push a register into memory:
-                currentAddress = ((currentAddress | 0) + 4) | 0;
-                this.memory.memoryWrite32(currentAddress | 0, this.guardUserRegisterRead(rListPosition | 0) | 0);
-                //Compute writeback immediately after the first register load:
-                if ((count | 0) == 0) {
-                    count = 1;
-                    //Store the updated base address back into register:
-                    this.guard16OffsetRegisterWrite(finalAddress | 0);
+    STMIBW() {
+        //Only initialize the STMIB sequence if the register list is non-empty:
+        if ((this.execute & 0xffff) > 0) {
+            //Get the base address:
+            var currentAddress = this.read16OffsetRegister() | 0;
+            var finalAddress = this.getPositiveOffsetStartAddress(currentAddress | 0) | 0;
+            //Updating the address bus away from PC fetch:
+            this.wait.NonSequentialBroadcast();
+            //Push register(s) into memory:
+            var count = 0;
+            for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Push a register into memory:
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
+                    this.memory.memoryWrite32(currentAddress | 0, this.readRegister(rListPosition | 0) | 0);
+                    //Compute writeback immediately after the first register load:
+                    if ((count | 0) == 0) {
+                        count = 1;
+                        //Store the updated base address back into register:
+                        this.guard16OffsetRegisterWrite(finalAddress | 0);
+                    }
                 }
             }
+            //Updating the address bus back to PC fetch:
+            this.wait.NonSequentialBroadcast();
         }
-        //Updating the address bus back to PC fetch:
-        this.wait.NonSequentialBroadcast();
     }
-};
-ARMInstructionSet.prototype.STMIBG = function () {
-    //Only initialize the STMIB sequence if the register list is non-empty:
-    if ((this.execute & 0xffff) > 0) {
-        //Get the base address:
-        var currentAddress = this.read16OffsetRegister() | 0;
-        //Updating the address bus away from PC fetch:
-        this.wait.NonSequentialBroadcast();
-        //Push register(s) into memory:
-        for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Push a register into memory:
-                currentAddress = ((currentAddress | 0) + 4) | 0;
-                this.memory.memoryWrite32(currentAddress | 0, this.guardUserRegisterRead(rListPosition | 0) | 0);
-            }
-        }
-        //Updating the address bus back to PC fetch:
-        this.wait.NonSequentialBroadcast();
-    }
-};
-ARMInstructionSet.prototype.STMIBWG = function () {
-    //Only initialize the STMIB sequence if the register list is non-empty:
-    if ((this.execute & 0xffff) > 0) {
-        //Get the base address:
-        var currentAddress = this.read16OffsetRegister() | 0;
-        var finalAddress = this.getPositiveOffsetStartAddress(currentAddress | 0) | 0;
-        //Updating the address bus away from PC fetch:
-        this.wait.NonSequentialBroadcast();
-        //Push register(s) into memory:
-        var count = 0;
-        for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Push a register into memory:
-                currentAddress = ((currentAddress | 0) + 4) | 0;
-                this.memory.memoryWrite32(currentAddress | 0, this.guardUserRegisterRead(rListPosition | 0) | 0);
-                //Compute writeback immediately after the first register load:
-                if ((count | 0) == 0) {
-                    count = 1;
-                    //Store the updated base address back into register:
-                    this.guard16OffsetRegisterWrite(finalAddress | 0);
+    STMDB() {
+        //Only initialize the STMDB sequence if the register list is non-empty:
+        if ((this.execute & 0xffff) > 0) {
+            //Get the base address:
+            var currentAddress = this.read16OffsetRegister() | 0;
+            //Get offset start address:
+            currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
+            //Updating the address bus away from PC fetch:
+            this.wait.NonSequentialBroadcast();
+            //Push register(s) into memory:
+            for (var rListPosition = 0; (rListPosition | 0) < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Push a register into memory:
+                    this.memory.memoryWrite32(currentAddress | 0, this.readRegister(rListPosition | 0) | 0);
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
                 }
             }
+            //Updating the address bus back to PC fetch:
+            this.wait.NonSequentialBroadcast();
         }
-        //Updating the address bus back to PC fetch:
-        this.wait.NonSequentialBroadcast();
     }
-};
-ARMInstructionSet.prototype.STMDBG = function () {
-    //Only initialize the STMDB sequence if the register list is non-empty:
-    if ((this.execute & 0xffff) > 0) {
-        //Get the base address:
-        var currentAddress = this.read16OffsetRegister() | 0;
-        //Get offset start address:
-        currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
-        //Updating the address bus away from PC fetch:
-        this.wait.NonSequentialBroadcast();
-        //Push register(s) into memory:
-        for (var rListPosition = 0; (rListPosition | 0) < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Push a register into memory:
-                this.memory.memoryWrite32(currentAddress | 0, this.guardUserRegisterRead(rListPosition | 0) | 0);
-                currentAddress = ((currentAddress | 0) + 4) | 0;
-            }
-        }
-        //Updating the address bus back to PC fetch:
-        this.wait.NonSequentialBroadcast();
-    }
-};
-ARMInstructionSet.prototype.STMDBWG = function () {
-    //Only initialize the STMDB sequence if the register list is non-empty:
-    if ((this.execute & 0xffff) > 0) {
-        //Get the base address:
-        var currentAddress = this.read16OffsetRegister() | 0;
-        //Get offset start address:
-        currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
-        var finalAddress = currentAddress | 0;
-        //Updating the address bus away from PC fetch:
-        this.wait.NonSequentialBroadcast();
-        //Push register(s) into memory:
-        var count = 0;
-        for (var rListPosition = 0; (rListPosition | 0) < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Push a register into memory:
-                this.memory.memoryWrite32(currentAddress | 0, this.guardUserRegisterRead(rListPosition | 0) | 0);
-                currentAddress = ((currentAddress | 0) + 4) | 0;
-                //Compute writeback immediately after the first register load:
-                if ((count | 0) == 0) {
-                    count = 1;
-                    //Store the updated base address back into register:
-                    this.guard16OffsetRegisterWrite(finalAddress | 0);
+    STMDBW() {
+        //Only initialize the STMDB sequence if the register list is non-empty:
+        if ((this.execute & 0xffff) > 0) {
+            //Get the base address:
+            var currentAddress = this.read16OffsetRegister() | 0;
+            //Get offset start address:
+            currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
+            var finalAddress = currentAddress | 0;
+            //Updating the address bus away from PC fetch:
+            this.wait.NonSequentialBroadcast();
+            //Push register(s) into memory:
+            var count = 0;
+            for (var rListPosition = 0; (rListPosition | 0) < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Push a register into memory:
+                    this.memory.memoryWrite32(currentAddress | 0, this.readRegister(rListPosition | 0) | 0);
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
+                    //Compute writeback immediately after the first register load:
+                    if ((count | 0) == 0) {
+                        count = 1;
+                        //Store the updated base address back into register:
+                        this.guard16OffsetRegisterWrite(finalAddress | 0);
+                    }
                 }
             }
+            //Updating the address bus back to PC fetch:
+            this.wait.NonSequentialBroadcast();
+        }
+    }
+    STMIAG() {
+        //Only initialize the STMIA sequence if the register list is non-empty:
+        if ((this.execute & 0xffff) > 0) {
+            //Get the base address:
+            var currentAddress = this.read16OffsetRegister() | 0;
+            //Updating the address bus away from PC fetch:
+            this.wait.NonSequentialBroadcast();
+            //Push register(s) into memory:
+            for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Push a register into memory:
+                    this.memory.memoryWrite32(currentAddress | 0, this.guardUserRegisterRead(rListPosition | 0) | 0);
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
+                }
+            }
+            //Updating the address bus back to PC fetch:
+            this.wait.NonSequentialBroadcast();
+        }
+    }
+    STMIAWG() {
+        //Only initialize the STMIA sequence if the register list is non-empty:
+        if ((this.execute & 0xffff) > 0) {
+            //Get the base address:
+            var currentAddress = this.read16OffsetRegister() | 0;
+            var finalAddress = this.getPositiveOffsetStartAddress(currentAddress | 0) | 0;
+            //Updating the address bus away from PC fetch:
+            this.wait.NonSequentialBroadcast();
+            //Push register(s) into memory:
+            var count = 0;
+            for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Push a register into memory:
+                    this.memory.memoryWrite32(currentAddress | 0, this.guardUserRegisterRead(rListPosition | 0) | 0);
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
+                    //Compute writeback immediately after the first register load:
+                    if ((count | 0) == 0) {
+                        count = 1;
+                        //Store the updated base address back into register:
+                        this.guard16OffsetRegisterWrite(finalAddress | 0);
+                    }
+                }
+            }
+            //Updating the address bus back to PC fetch:
+            this.wait.NonSequentialBroadcast();
+        }
+    }
+    STMDAG() {
+        //Only initialize the STMDA sequence if the register list is non-empty:
+        if ((this.execute & 0xffff) > 0) {
+            //Get the base address:
+            var currentAddress = this.read16OffsetRegister() | 0;
+            //Get offset start address:
+            currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
+            //Updating the address bus away from PC fetch:
+            this.wait.NonSequentialBroadcast();
+            //Push register(s) into memory:
+            for (var rListPosition = 0; (rListPosition | 0) < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Push a register into memory:
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
+                    this.memory.memoryWrite32(currentAddress | 0, this.guardUserRegisterRead(rListPosition | 0) | 0);
+                }
+            }
+            //Updating the address bus back to PC fetch:
+            this.wait.NonSequentialBroadcast();
+        }
+    }
+    STMDAWG() {
+        //Only initialize the STMDA sequence if the register list is non-empty:
+        if ((this.execute & 0xffff) > 0) {
+            //Get the base address:
+            var currentAddress = this.read16OffsetRegister() | 0;
+            //Get offset start address:
+            currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
+            var finalAddress = currentAddress | 0;
+            //Updating the address bus away from PC fetch:
+            this.wait.NonSequentialBroadcast();
+            //Push register(s) into memory:
+            var count = 0;
+            for (var rListPosition = 0; (rListPosition | 0) < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Push a register into memory:
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
+                    this.memory.memoryWrite32(currentAddress | 0, this.guardUserRegisterRead(rListPosition | 0) | 0);
+                    //Compute writeback immediately after the first register load:
+                    if ((count | 0) == 0) {
+                        count = 1;
+                        //Store the updated base address back into register:
+                        this.guard16OffsetRegisterWrite(finalAddress | 0);
+                    }
+                }
+            }
+            //Updating the address bus back to PC fetch:
+            this.wait.NonSequentialBroadcast();
+        }
+    }
+    STMIBG() {
+        //Only initialize the STMIB sequence if the register list is non-empty:
+        if ((this.execute & 0xffff) > 0) {
+            //Get the base address:
+            var currentAddress = this.read16OffsetRegister() | 0;
+            //Updating the address bus away from PC fetch:
+            this.wait.NonSequentialBroadcast();
+            //Push register(s) into memory:
+            for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Push a register into memory:
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
+                    this.memory.memoryWrite32(currentAddress | 0, this.guardUserRegisterRead(rListPosition | 0) | 0);
+                }
+            }
+            //Updating the address bus back to PC fetch:
+            this.wait.NonSequentialBroadcast();
+        }
+    }
+    STMIBWG() {
+        //Only initialize the STMIB sequence if the register list is non-empty:
+        if ((this.execute & 0xffff) > 0) {
+            //Get the base address:
+            var currentAddress = this.read16OffsetRegister() | 0;
+            var finalAddress = this.getPositiveOffsetStartAddress(currentAddress | 0) | 0;
+            //Updating the address bus away from PC fetch:
+            this.wait.NonSequentialBroadcast();
+            //Push register(s) into memory:
+            var count = 0;
+            for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Push a register into memory:
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
+                    this.memory.memoryWrite32(currentAddress | 0, this.guardUserRegisterRead(rListPosition | 0) | 0);
+                    //Compute writeback immediately after the first register load:
+                    if ((count | 0) == 0) {
+                        count = 1;
+                        //Store the updated base address back into register:
+                        this.guard16OffsetRegisterWrite(finalAddress | 0);
+                    }
+                }
+            }
+            //Updating the address bus back to PC fetch:
+            this.wait.NonSequentialBroadcast();
+        }
+    }
+    STMDBG() {
+        //Only initialize the STMDB sequence if the register list is non-empty:
+        if ((this.execute & 0xffff) > 0) {
+            //Get the base address:
+            var currentAddress = this.read16OffsetRegister() | 0;
+            //Get offset start address:
+            currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
+            //Updating the address bus away from PC fetch:
+            this.wait.NonSequentialBroadcast();
+            //Push register(s) into memory:
+            for (var rListPosition = 0; (rListPosition | 0) < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Push a register into memory:
+                    this.memory.memoryWrite32(currentAddress | 0, this.guardUserRegisterRead(rListPosition | 0) | 0);
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
+                }
+            }
+            //Updating the address bus back to PC fetch:
+            this.wait.NonSequentialBroadcast();
+        }
+    }
+    STMDBWG() {
+        //Only initialize the STMDB sequence if the register list is non-empty:
+        if ((this.execute & 0xffff) > 0) {
+            //Get the base address:
+            var currentAddress = this.read16OffsetRegister() | 0;
+            //Get offset start address:
+            currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
+            var finalAddress = currentAddress | 0;
+            //Updating the address bus away from PC fetch:
+            this.wait.NonSequentialBroadcast();
+            //Push register(s) into memory:
+            var count = 0;
+            for (var rListPosition = 0; (rListPosition | 0) < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Push a register into memory:
+                    this.memory.memoryWrite32(currentAddress | 0, this.guardUserRegisterRead(rListPosition | 0) | 0);
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
+                    //Compute writeback immediately after the first register load:
+                    if ((count | 0) == 0) {
+                        count = 1;
+                        //Store the updated base address back into register:
+                        this.guard16OffsetRegisterWrite(finalAddress | 0);
+                    }
+                }
+            }
+            //Updating the address bus back to PC fetch:
+            this.wait.NonSequentialBroadcast();
+        }
+    }
+    LDMIA() {
+        //Get the base address:
+        var currentAddress = this.read16OffsetRegister() | 0;
+        //Updating the address bus away from PC fetch:
+        this.wait.NonSequentialBroadcast();
+        if ((this.execute & 0xffff) > 0) {
+            //Load register(s) from memory:
+            for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Load a register from memory:
+                    this.guardRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
+                }
+            }
+        } else {
+            //Empty reglist loads PC:
+            this.guardRegisterWriteLDM(0xf, this.memory.memoryRead32(currentAddress | 0) | 0);
         }
         //Updating the address bus back to PC fetch:
         this.wait.NonSequentialBroadcast();
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
     }
-};
-ARMInstructionSet.prototype.LDMIA = function () {
-    //Get the base address:
-    var currentAddress = this.read16OffsetRegister() | 0;
-    //Updating the address bus away from PC fetch:
-    this.wait.NonSequentialBroadcast();
-    if ((this.execute & 0xffff) > 0) {
-        //Load register(s) from memory:
-        for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Load a register from memory:
-                this.guardRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
-                currentAddress = ((currentAddress | 0) + 4) | 0;
-            }
-        }
-    } else {
-        //Empty reglist loads PC:
-        this.guardRegisterWriteLDM(0xf, this.memory.memoryRead32(currentAddress | 0) | 0);
-    }
-    //Updating the address bus back to PC fetch:
-    this.wait.NonSequentialBroadcast();
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.LDMIAW = function () {
-    //Get the base address:
-    var currentAddress = this.read16OffsetRegister() | 0;
-    //Updating the address bus away from PC fetch:
-    this.wait.NonSequentialBroadcast();
-    if ((this.execute & 0xffff) > 0) {
-        //Load register(s) from memory:
-        for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Load a register from memory:
-                this.guardRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
-                currentAddress = ((currentAddress | 0) + 4) | 0;
-            }
-        }
-    } else {
-        //Empty reglist loads PC:
-        this.guardRegisterWriteLDM(0xf, this.memory.memoryRead32(currentAddress | 0) | 0);
-        currentAddress = ((currentAddress | 0) + 0x40) | 0;
-    }
-    //Store the updated base address back into register:
-    this.guard16OffsetRegisterWrite(currentAddress | 0);
-    //Updating the address bus back to PC fetch:
-    this.wait.NonSequentialBroadcast();
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.LDMDA = function () {
-    //Get the base address:
-    var currentAddress = this.read16OffsetRegister() | 0;
-    //Updating the address bus away from PC fetch:
-    this.wait.NonSequentialBroadcast();
-    if ((this.execute & 0xffff) > 0) {
-        //Get the offset address:
-        currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
-        //Load register(s) from memory:
-        for (var rListPosition = 0; (rListPosition | 0) < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Load a register from memory:
-                currentAddress = ((currentAddress | 0) + 4) | 0;
-                this.guardRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
-            }
-        }
-        //Updating the address bus back to PC fetch:
+    LDMIAW() {
+        //Get the base address:
+        var currentAddress = this.read16OffsetRegister() | 0;
+        //Updating the address bus away from PC fetch:
         this.wait.NonSequentialBroadcast();
-    } else {
-        //Empty reglist loads PC:
-        this.guardRegisterWriteLDM(0xf, this.memory.memoryRead32(currentAddress | 0) | 0);
-    }
-    //Updating the address bus back to PC fetch:
-    this.wait.NonSequentialBroadcast();
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.LDMDAW = function () {
-    //Get the base address:
-    var currentAddress = this.read16OffsetRegister() | 0;
-    //Updating the address bus away from PC fetch:
-    this.wait.NonSequentialBroadcast();
-    if ((this.execute & 0xffff) > 0) {
-        //Get the offset address:
-        currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
-        var writebackAddress = currentAddress | 0;
-        //Load register(s) from memory:
-        for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Load a register from memory:
-                currentAddress = ((currentAddress | 0) + 4) | 0;
-                this.guardRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
+        if ((this.execute & 0xffff) > 0) {
+            //Load register(s) from memory:
+            for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Load a register from memory:
+                    this.guardRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
+                }
             }
+        } else {
+            //Empty reglist loads PC:
+            this.guardRegisterWriteLDM(0xf, this.memory.memoryRead32(currentAddress | 0) | 0);
+            currentAddress = ((currentAddress | 0) + 0x40) | 0;
         }
-        //Store the updated base address back into register:
-        this.guard16OffsetRegisterWrite(writebackAddress | 0);
-    } else {
-        //Empty reglist loads PC:
-        this.guardRegisterWriteLDM(0xf, this.memory.memoryRead32(currentAddress | 0) | 0);
-        currentAddress = ((currentAddress | 0) - 0x40) | 0;
         //Store the updated base address back into register:
         this.guard16OffsetRegisterWrite(currentAddress | 0);
+        //Updating the address bus back to PC fetch:
+        this.wait.NonSequentialBroadcast();
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
     }
-    //Updating the address bus back to PC fetch:
-    this.wait.NonSequentialBroadcast();
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.LDMIB = function () {
-    //Get the base address:
-    var currentAddress = this.read16OffsetRegister() | 0;
-    //Updating the address bus away from PC fetch:
-    this.wait.NonSequentialBroadcast();
-    if ((this.execute & 0xffff) > 0) {
-        //Load register(s) from memory:
-        for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Load a register from memory:
-                currentAddress = ((currentAddress | 0) + 4) | 0;
-                this.guardRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
+    LDMDA() {
+        //Get the base address:
+        var currentAddress = this.read16OffsetRegister() | 0;
+        //Updating the address bus away from PC fetch:
+        this.wait.NonSequentialBroadcast();
+        if ((this.execute & 0xffff) > 0) {
+            //Get the offset address:
+            currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
+            //Load register(s) from memory:
+            for (var rListPosition = 0; (rListPosition | 0) < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Load a register from memory:
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
+                    this.guardRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
+                }
             }
+            //Updating the address bus back to PC fetch:
+            this.wait.NonSequentialBroadcast();
+        } else {
+            //Empty reglist loads PC:
+            this.guardRegisterWriteLDM(0xf, this.memory.memoryRead32(currentAddress | 0) | 0);
         }
-    } else {
-        //Empty reglist loads PC:
-        currentAddress = ((currentAddress | 0) + 4) | 0;
-        this.guardRegisterWriteLDM(0xf, this.memory.memoryRead32(currentAddress | 0) | 0);
+        //Updating the address bus back to PC fetch:
+        this.wait.NonSequentialBroadcast();
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
     }
-    //Updating the address bus back to PC fetch:
-    this.wait.NonSequentialBroadcast();
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.LDMIBW = function () {
-    //Get the base address:
-    var currentAddress = this.read16OffsetRegister() | 0;
-    //Updating the address bus away from PC fetch:
-    this.wait.NonSequentialBroadcast();
-    if ((this.execute & 0xffff) > 0) {
-        //Load register(s) from memory:
-        for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Load a register from memory:
-                currentAddress = ((currentAddress | 0) + 4) | 0;
-                this.guardRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
+    LDMDAW() {
+        //Get the base address:
+        var currentAddress = this.read16OffsetRegister() | 0;
+        //Updating the address bus away from PC fetch:
+        this.wait.NonSequentialBroadcast();
+        if ((this.execute & 0xffff) > 0) {
+            //Get the offset address:
+            currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
+            var writebackAddress = currentAddress | 0;
+            //Load register(s) from memory:
+            for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Load a register from memory:
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
+                    this.guardRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
+                }
             }
+            //Store the updated base address back into register:
+            this.guard16OffsetRegisterWrite(writebackAddress | 0);
+        } else {
+            //Empty reglist loads PC:
+            this.guardRegisterWriteLDM(0xf, this.memory.memoryRead32(currentAddress | 0) | 0);
+            currentAddress = ((currentAddress | 0) - 0x40) | 0;
+            //Store the updated base address back into register:
+            this.guard16OffsetRegisterWrite(currentAddress | 0);
         }
-    } else {
-        //Empty reglist loads PC:
-        currentAddress = ((currentAddress | 0) + 0x40) | 0;
-        this.guardRegisterWriteLDM(0xf, this.memory.memoryRead32(currentAddress | 0) | 0);
+        //Updating the address bus back to PC fetch:
+        this.wait.NonSequentialBroadcast();
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
     }
-    //Store the updated base address back into register:
-    this.guard16OffsetRegisterWrite(currentAddress | 0);
-    //Updating the address bus back to PC fetch:
-    this.wait.NonSequentialBroadcast();
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.LDMDB = function () {
-    //Get the base address:
-    var currentAddress = this.read16OffsetRegister() | 0;
-    //Updating the address bus away from PC fetch:
-    this.wait.NonSequentialBroadcast();
-    if ((this.execute & 0xffff) > 0) {
-        //Get the offset address:
-        currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
-        //Load register(s) from memory:
-        for (var rListPosition = 0; (rListPosition | 0) < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Load a register from memory:
-                this.guardRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
-                currentAddress = ((currentAddress | 0) + 4) | 0;
+    LDMIB() {
+        //Get the base address:
+        var currentAddress = this.read16OffsetRegister() | 0;
+        //Updating the address bus away from PC fetch:
+        this.wait.NonSequentialBroadcast();
+        if ((this.execute & 0xffff) > 0) {
+            //Load register(s) from memory:
+            for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Load a register from memory:
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
+                    this.guardRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
+                }
             }
+        } else {
+            //Empty reglist loads PC:
+            currentAddress = ((currentAddress | 0) + 4) | 0;
+            this.guardRegisterWriteLDM(0xf, this.memory.memoryRead32(currentAddress | 0) | 0);
         }
-    } else {
-        //Empty reglist loads PC:
-        currentAddress = ((currentAddress | 0) - 4) | 0;
-        this.guardRegisterWriteLDM(0xf, this.memory.memoryRead32(currentAddress | 0) | 0);
+        //Updating the address bus back to PC fetch:
+        this.wait.NonSequentialBroadcast();
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
     }
-    //Updating the address bus back to PC fetch:
-    this.wait.NonSequentialBroadcast();
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.LDMDBW = function () {
-    //Get the base address:
-    var currentAddress = this.read16OffsetRegister() | 0;
-    //Updating the address bus away from PC fetch:
-    this.wait.NonSequentialBroadcast();
-    if ((this.execute & 0xffff) > 0) {
-        //Get the offset address:
-        currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
-        var writebackAddress = currentAddress | 0;
-        //Load register(s) from memory:
-        for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Load a register from memory:
-                this.guardRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
-                currentAddress = ((currentAddress | 0) + 4) | 0;
+    LDMIBW() {
+        //Get the base address:
+        var currentAddress = this.read16OffsetRegister() | 0;
+        //Updating the address bus away from PC fetch:
+        this.wait.NonSequentialBroadcast();
+        if ((this.execute & 0xffff) > 0) {
+            //Load register(s) from memory:
+            for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Load a register from memory:
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
+                    this.guardRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
+                }
             }
+        } else {
+            //Empty reglist loads PC:
+            currentAddress = ((currentAddress | 0) + 0x40) | 0;
+            this.guardRegisterWriteLDM(0xf, this.memory.memoryRead32(currentAddress | 0) | 0);
         }
-        //Store the updated base address back into register:
-        this.guard16OffsetRegisterWrite(writebackAddress | 0);
-    } else {
-        //Empty reglist loads PC:
-        currentAddress = ((currentAddress | 0) - 0x40) | 0;
-        this.guardRegisterWriteLDM(0xf, this.memory.memoryRead32(currentAddress | 0) | 0);
         //Store the updated base address back into register:
         this.guard16OffsetRegisterWrite(currentAddress | 0);
+        //Updating the address bus back to PC fetch:
+        this.wait.NonSequentialBroadcast();
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
     }
-    //Updating the address bus back to PC fetch:
-    this.wait.NonSequentialBroadcast();
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.LDMIAG = function () {
-    //Get the base address:
-    var currentAddress = this.read16OffsetRegister() | 0;
-    //Updating the address bus away from PC fetch:
-    this.wait.NonSequentialBroadcast();
-    if ((this.execute & 0xffff) > 0) {
-        //Load register(s) from memory:
-        for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Load a register from memory:
-                this.guardUserRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
-                currentAddress = ((currentAddress | 0) + 4) | 0;
+    LDMDB() {
+        //Get the base address:
+        var currentAddress = this.read16OffsetRegister() | 0;
+        //Updating the address bus away from PC fetch:
+        this.wait.NonSequentialBroadcast();
+        if ((this.execute & 0xffff) > 0) {
+            //Get the offset address:
+            currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
+            //Load register(s) from memory:
+            for (var rListPosition = 0; (rListPosition | 0) < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Load a register from memory:
+                    this.guardRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
+                }
             }
+        } else {
+            //Empty reglist loads PC:
+            currentAddress = ((currentAddress | 0) - 4) | 0;
+            this.guardRegisterWriteLDM(0xf, this.memory.memoryRead32(currentAddress | 0) | 0);
         }
-    } else {
-        //Empty reglist loads PC:
-        this.guardProgramCounterRegisterWriteCPSR(this.memory.memoryRead32(currentAddress | 0) | 0);
+        //Updating the address bus back to PC fetch:
+        this.wait.NonSequentialBroadcast();
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
     }
-    //Updating the address bus back to PC fetch:
-    this.wait.NonSequentialBroadcast();
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.LDMIAWG = function () {
-    //Get the base address:
-    var currentAddress = this.read16OffsetRegister() | 0;
-    //Updating the address bus away from PC fetch:
-    this.wait.NonSequentialBroadcast();
-    if ((this.execute & 0xffff) > 0) {
-        //Load register(s) from memory:
-        for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Load a register from memory:
-                this.guardUserRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
-                currentAddress = ((currentAddress | 0) + 4) | 0;
+    LDMDBW() {
+        //Get the base address:
+        var currentAddress = this.read16OffsetRegister() | 0;
+        //Updating the address bus away from PC fetch:
+        this.wait.NonSequentialBroadcast();
+        if ((this.execute & 0xffff) > 0) {
+            //Get the offset address:
+            currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
+            var writebackAddress = currentAddress | 0;
+            //Load register(s) from memory:
+            for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Load a register from memory:
+                    this.guardRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
+                }
             }
+            //Store the updated base address back into register:
+            this.guard16OffsetRegisterWrite(writebackAddress | 0);
+        } else {
+            //Empty reglist loads PC:
+            currentAddress = ((currentAddress | 0) - 0x40) | 0;
+            this.guardRegisterWriteLDM(0xf, this.memory.memoryRead32(currentAddress | 0) | 0);
+            //Store the updated base address back into register:
+            this.guard16OffsetRegisterWrite(currentAddress | 0);
         }
-    } else {
-        //Empty reglist loads PC:
-        this.guardProgramCounterRegisterWriteCPSR(this.memory.memoryRead32(currentAddress | 0) | 0);
-        currentAddress = ((currentAddress | 0) + 0x40) | 0;
+        //Updating the address bus back to PC fetch:
+        this.wait.NonSequentialBroadcast();
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
     }
-    //Store the updated base address back into register:
-    this.guard16OffsetRegisterWrite(currentAddress | 0);
-    //Updating the address bus back to PC fetch:
-    this.wait.NonSequentialBroadcast();
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.LDMDAG = function () {
-    //Get the base address:
-    var currentAddress = this.read16OffsetRegister() | 0;
-    //Get the offset address:
-    currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
-    //Updating the address bus away from PC fetch:
-    this.wait.NonSequentialBroadcast();
-    if ((this.execute & 0xffff) > 0) {
-        //Load register(s) from memory:
-        for (var rListPosition = 0; (rListPosition | 0) < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Load a register from memory:
-                currentAddress = ((currentAddress | 0) + 4) | 0;
-                this.guardUserRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
+    LDMIAG() {
+        //Get the base address:
+        var currentAddress = this.read16OffsetRegister() | 0;
+        //Updating the address bus away from PC fetch:
+        this.wait.NonSequentialBroadcast();
+        if ((this.execute & 0xffff) > 0) {
+            //Load register(s) from memory:
+            for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Load a register from memory:
+                    this.guardUserRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
+                }
             }
+        } else {
+            //Empty reglist loads PC:
+            this.guardProgramCounterRegisterWriteCPSR(this.memory.memoryRead32(currentAddress | 0) | 0);
         }
-    } else {
-        //Empty reglist loads PC:
-        this.guardUserRegisterWriteLDM(0xf, this.memory.memoryRead32(currentAddress | 0) | 0);
+        //Updating the address bus back to PC fetch:
+        this.wait.NonSequentialBroadcast();
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
     }
-    //Updating the address bus back to PC fetch:
-    this.wait.NonSequentialBroadcast();
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.LDMDAWG = function () {
-    //Get the base address:
-    var currentAddress = this.read16OffsetRegister() | 0;
-    //Updating the address bus away from PC fetch:
-    this.wait.NonSequentialBroadcast();
-    if ((this.execute & 0xffff) > 0) {
-        //Get the offset address:
-        currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
-        var writebackAddress = currentAddress | 0;
-        //Load register(s) from memory:
-        for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Load a register from memory:
-                currentAddress = ((currentAddress | 0) + 4) | 0;
-                this.guardUserRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
+    LDMIAWG() {
+        //Get the base address:
+        var currentAddress = this.read16OffsetRegister() | 0;
+        //Updating the address bus away from PC fetch:
+        this.wait.NonSequentialBroadcast();
+        if ((this.execute & 0xffff) > 0) {
+            //Load register(s) from memory:
+            for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Load a register from memory:
+                    this.guardUserRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
+                }
             }
+        } else {
+            //Empty reglist loads PC:
+            this.guardProgramCounterRegisterWriteCPSR(this.memory.memoryRead32(currentAddress | 0) | 0);
+            currentAddress = ((currentAddress | 0) + 0x40) | 0;
         }
-        //Store the updated base address back into register:
-        this.guard16OffsetRegisterWrite(writebackAddress | 0);
-    } else {
-        //Empty reglist loads PC:
-        this.guardProgramCounterRegisterWriteCPSR(this.memory.memoryRead32(currentAddress | 0) | 0);
-        currentAddress = ((currentAddress | 0) - 0x40) | 0;
         //Store the updated base address back into register:
         this.guard16OffsetRegisterWrite(currentAddress | 0);
+        //Updating the address bus back to PC fetch:
+        this.wait.NonSequentialBroadcast();
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
     }
-    //Updating the address bus back to PC fetch:
-    this.wait.NonSequentialBroadcast();
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.LDMIBG = function () {
-    //Get the base address:
-    var currentAddress = this.read16OffsetRegister() | 0;
-    //Updating the address bus away from PC fetch:
-    this.wait.NonSequentialBroadcast();
-    if ((this.execute & 0xffff) > 0) {
-        //Load register(s) from memory:
-        for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Load a register from memory:
-                currentAddress = ((currentAddress | 0) + 4) | 0;
-                this.guardUserRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
-            }
-        }
-    } else {
-        //Empty reglist loads PC:
-        currentAddress = ((currentAddress | 0) + 4) | 0;
-        this.guardProgramCounterRegisterWriteCPSR(this.memory.memoryRead32(currentAddress | 0) | 0);
-    }
-    //Updating the address bus back to PC fetch:
-    this.wait.NonSequentialBroadcast();
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.LDMIBWG = function () {
-    //Get the base address:
-    var currentAddress = this.read16OffsetRegister() | 0;
-    //Updating the address bus away from PC fetch:
-    this.wait.NonSequentialBroadcast();
-    if ((this.execute & 0xffff) > 0) {
-        //Load register(s) from memory:
-        for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Load a register from memory:
-                currentAddress = ((currentAddress | 0) + 4) | 0;
-                this.guardUserRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
-            }
-        }
-    } else {
-        //Empty reglist loads PC:
-        currentAddress = ((currentAddress | 0) + 0x40) | 0;
-        this.guardProgramCounterRegisterWriteCPSR(this.memory.memoryRead32(currentAddress | 0) | 0);
-    }
-    //Store the updated base address back into register:
-    this.guard16OffsetRegisterWrite(currentAddress | 0);
-    //Updating the address bus back to PC fetch:
-    this.wait.NonSequentialBroadcast();
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.LDMDBG = function () {
-    //Get the base address:
-    var currentAddress = this.read16OffsetRegister() | 0;
-    //Updating the address bus away from PC fetch:
-    this.wait.NonSequentialBroadcast();
-    if ((this.execute & 0xffff) > 0) {
+    LDMDAG() {
+        //Get the base address:
+        var currentAddress = this.read16OffsetRegister() | 0;
         //Get the offset address:
         currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
-        //Load register(s) from memory:
-        for (var rListPosition = 0; (rListPosition | 0) < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Load a register from memory:
-                this.guardUserRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
-                currentAddress = ((currentAddress | 0) + 4) | 0;
+        //Updating the address bus away from PC fetch:
+        this.wait.NonSequentialBroadcast();
+        if ((this.execute & 0xffff) > 0) {
+            //Load register(s) from memory:
+            for (var rListPosition = 0; (rListPosition | 0) < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Load a register from memory:
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
+                    this.guardUserRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
+                }
             }
+        } else {
+            //Empty reglist loads PC:
+            this.guardUserRegisterWriteLDM(0xf, this.memory.memoryRead32(currentAddress | 0) | 0);
         }
-    } else {
-        //Empty reglist loads PC:
-        currentAddress = ((currentAddress | 0) - 4) | 0;
-        this.guardProgramCounterRegisterWriteCPSR(this.memory.memoryRead32(currentAddress | 0) | 0);
+        //Updating the address bus back to PC fetch:
+        this.wait.NonSequentialBroadcast();
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
     }
-    //Updating the address bus back to PC fetch:
-    this.wait.NonSequentialBroadcast();
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.LDMDBWG = function () {
-    //Get the base address:
-    var currentAddress = this.read16OffsetRegister() | 0;
-    //Updating the address bus away from PC fetch:
-    this.wait.NonSequentialBroadcast();
-    if ((this.execute & 0xffff) > 0) {
-        //Get the offset address:
-        currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
-        var writebackAddress = currentAddress | 0;
-        //Load register(s) from memory:
-        for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
-            if ((this.execute & (1 << rListPosition)) != 0) {
-                //Load a register from memory:
-                this.guardUserRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
-                currentAddress = ((currentAddress | 0) + 4) | 0;
+    LDMDAWG() {
+        //Get the base address:
+        var currentAddress = this.read16OffsetRegister() | 0;
+        //Updating the address bus away from PC fetch:
+        this.wait.NonSequentialBroadcast();
+        if ((this.execute & 0xffff) > 0) {
+            //Get the offset address:
+            currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
+            var writebackAddress = currentAddress | 0;
+            //Load register(s) from memory:
+            for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Load a register from memory:
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
+                    this.guardUserRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
+                }
             }
+            //Store the updated base address back into register:
+            this.guard16OffsetRegisterWrite(writebackAddress | 0);
+        } else {
+            //Empty reglist loads PC:
+            this.guardProgramCounterRegisterWriteCPSR(this.memory.memoryRead32(currentAddress | 0) | 0);
+            currentAddress = ((currentAddress | 0) - 0x40) | 0;
+            //Store the updated base address back into register:
+            this.guard16OffsetRegisterWrite(currentAddress | 0);
         }
-        //Store the updated base address back into register:
-        this.guard16OffsetRegisterWrite(writebackAddress | 0);
-    } else {
-        //Empty reglist loads PC:
-        currentAddress = ((currentAddress | 0) - 0x40) | 0;
-        this.guardProgramCounterRegisterWriteCPSR(this.memory.memoryRead32(currentAddress | 0) | 0);
+        //Updating the address bus back to PC fetch:
+        this.wait.NonSequentialBroadcast();
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
+    }
+    LDMIBG() {
+        //Get the base address:
+        var currentAddress = this.read16OffsetRegister() | 0;
+        //Updating the address bus away from PC fetch:
+        this.wait.NonSequentialBroadcast();
+        if ((this.execute & 0xffff) > 0) {
+            //Load register(s) from memory:
+            for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Load a register from memory:
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
+                    this.guardUserRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
+                }
+            }
+        } else {
+            //Empty reglist loads PC:
+            currentAddress = ((currentAddress | 0) + 4) | 0;
+            this.guardProgramCounterRegisterWriteCPSR(this.memory.memoryRead32(currentAddress | 0) | 0);
+        }
+        //Updating the address bus back to PC fetch:
+        this.wait.NonSequentialBroadcast();
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
+    }
+    LDMIBWG() {
+        //Get the base address:
+        var currentAddress = this.read16OffsetRegister() | 0;
+        //Updating the address bus away from PC fetch:
+        this.wait.NonSequentialBroadcast();
+        if ((this.execute & 0xffff) > 0) {
+            //Load register(s) from memory:
+            for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Load a register from memory:
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
+                    this.guardUserRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
+                }
+            }
+        } else {
+            //Empty reglist loads PC:
+            currentAddress = ((currentAddress | 0) + 0x40) | 0;
+            this.guardProgramCounterRegisterWriteCPSR(this.memory.memoryRead32(currentAddress | 0) | 0);
+        }
         //Store the updated base address back into register:
         this.guard16OffsetRegisterWrite(currentAddress | 0);
+        //Updating the address bus back to PC fetch:
+        this.wait.NonSequentialBroadcast();
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
     }
-    //Updating the address bus back to PC fetch:
-    this.wait.NonSequentialBroadcast();
-    //Internal Cycle:
-    this.wait.CPUInternalSingleCyclePrefetch();
-};
-ARMInstructionSet.prototype.LoadStoreMultiple = function () {
-    this.incrementProgramCounter();
-    switch ((this.execute >> 20) & 0x1f) {
-        case 0:
-            this.STMDA();
-            break;
-        case 0x1:
-            this.LDMDA();
-            break;
-        case 0x2:
-            this.STMDAW();
-            break;
-        case 0x3:
-            this.LDMDAW();
-            break;
-        case 0x4:
-            this.STMDAG();
-            break;
-        case 0x5:
-            this.LDMDAG();
-            break;
-        case 0x6:
-            this.STMDAWG();
-            break;
-        case 0x7:
-            this.LDMDAWG();
-            break;
-        case 0x8:
-            this.STMIA();
-            break;
-        case 0x9:
-            this.LDMIA();
-            break;
-        case 0xa:
-            this.STMIAW();
-            break;
-        case 0xb:
-            this.LDMIAW();
-            break;
-        case 0xc:
-            this.STMIAG();
-            break;
-        case 0xd:
-            this.LDMIAG();
-            break;
-        case 0xe:
-            this.STMIAWG();
-            break;
-        case 0xf:
-            this.LDMIAWG();
-            break;
-        case 0x10:
-            this.STMDB();
-            break;
-        case 0x11:
-            this.LDMDB();
-            break;
-        case 0x12:
-            this.STMDBW();
-            break;
-        case 0x13:
-            this.LDMDBW();
-            break;
-        case 0x14:
-            this.STMDBG();
-            break;
-        case 0x15:
-            this.LDMDBG();
-            break;
-        case 0x16:
-            this.STMDBWG();
-            break;
-        case 0x17:
-            this.LDMDBWG();
-            break;
-        case 0x18:
-            this.STMIB();
-            break;
-        case 0x19:
-            this.LDMIB();
-            break;
-        case 0x1a:
-            this.STMIBW();
-            break;
-        case 0x1b:
-            this.LDMIBW();
-            break;
-        case 0x1c:
-            this.STMIBG();
-            break;
-        case 0x1d:
-            this.LDMIBG();
-            break;
-        case 0x1e:
-            this.STMIBWG();
-            break;
-        default:
-            this.LDMIBWG();
+    LDMDBG() {
+        //Get the base address:
+        var currentAddress = this.read16OffsetRegister() | 0;
+        //Updating the address bus away from PC fetch:
+        this.wait.NonSequentialBroadcast();
+        if ((this.execute & 0xffff) > 0) {
+            //Get the offset address:
+            currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
+            //Load register(s) from memory:
+            for (var rListPosition = 0; (rListPosition | 0) < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Load a register from memory:
+                    this.guardUserRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
+                }
+            }
+        } else {
+            //Empty reglist loads PC:
+            currentAddress = ((currentAddress | 0) - 4) | 0;
+            this.guardProgramCounterRegisterWriteCPSR(this.memory.memoryRead32(currentAddress | 0) | 0);
+        }
+        //Updating the address bus back to PC fetch:
+        this.wait.NonSequentialBroadcast();
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
     }
-};
-ARMInstructionSet.prototype.SWP = function () {
-    var base = this.read16OffsetRegister() | 0;
-    var data = this.CPUCore.read32(base | 0) | 0;
-    //Clock a cycle for the processing delaying the CPU:
-    this.wait.CPUInternalSingleCyclePrefetch();
-    this.CPUCore.write32(base | 0, this.read0OffsetRegister() | 0);
-    this.guard12OffsetRegisterWrite(data | 0);
-};
-ARMInstructionSet.prototype.SWPB = function () {
-    var base = this.read16OffsetRegister() | 0;
-    var data = this.CPUCore.read8(base | 0) | 0;
-    //Clock a cycle for the processing delaying the CPU:
-    this.wait.CPUInternalSingleCyclePrefetch();
-    this.CPUCore.write8(base | 0, this.read0OffsetRegister() | 0);
-    this.guard12OffsetRegisterWrite(data | 0);
-};
-ARMInstructionSet.prototype.SWI = function () {
-    //Software Interrupt:
-    this.CPUCore.SWI();
-};
-ARMInstructionSet.prototype.UNDEFINED = function () {
-    //Undefined Exception:
-    this.CPUCore.UNDEFINED();
-};
-ARMInstructionSet.prototype.operand2OP_DataProcessing1 = function () {
-    var data = 0;
-    switch ((this.execute & 0x2000060) >> 5) {
-        case 0:
-            data = this.lli() | 0;
-            break;
-        case 1:
-            data = this.lri() | 0;
-            break;
-        case 2:
-            data = this.ari() | 0;
-            break;
-        case 3:
-            data = this.rri() | 0;
-            break;
-        default:
-            data = this.imm() | 0;
+    LDMDBWG() {
+        //Get the base address:
+        var currentAddress = this.read16OffsetRegister() | 0;
+        //Updating the address bus away from PC fetch:
+        this.wait.NonSequentialBroadcast();
+        if ((this.execute & 0xffff) > 0) {
+            //Get the offset address:
+            currentAddress = this.getNegativeOffsetStartAddress(currentAddress | 0) | 0;
+            var writebackAddress = currentAddress | 0;
+            //Load register(s) from memory:
+            for (var rListPosition = 0; rListPosition < 0x10; rListPosition = ((rListPosition | 0) + 1) | 0) {
+                if ((this.execute & (1 << rListPosition)) != 0) {
+                    //Load a register from memory:
+                    this.guardUserRegisterWriteLDM(rListPosition | 0, this.memory.memoryRead32(currentAddress | 0) | 0);
+                    currentAddress = ((currentAddress | 0) + 4) | 0;
+                }
+            }
+            //Store the updated base address back into register:
+            this.guard16OffsetRegisterWrite(writebackAddress | 0);
+        } else {
+            //Empty reglist loads PC:
+            currentAddress = ((currentAddress | 0) - 0x40) | 0;
+            this.guardProgramCounterRegisterWriteCPSR(this.memory.memoryRead32(currentAddress | 0) | 0);
+            //Store the updated base address back into register:
+            this.guard16OffsetRegisterWrite(currentAddress | 0);
+        }
+        //Updating the address bus back to PC fetch:
+        this.wait.NonSequentialBroadcast();
+        //Internal Cycle:
+        this.wait.CPUInternalSingleCyclePrefetch();
     }
-    return data | 0;
-};
-ARMInstructionSet.prototype.operand2OP_DataProcessing2 = function () {
-    var data = 0;
-    switch ((this.execute & 0x2000060) >> 5) {
-        case 0:
-            data = this.llis() | 0;
-            break;
-        case 1:
-            data = this.lris() | 0;
-            break;
-        case 2:
-            data = this.aris() | 0;
-            break;
-        case 3:
-            data = this.rris() | 0;
-            break;
-        default:
-            data = this.imms() | 0;
+    LoadStoreMultiple() {
+        this.incrementProgramCounter();
+        switch ((this.execute >> 20) & 0x1f) {
+            case 0:
+                this.STMDA();
+                break;
+            case 0x1:
+                this.LDMDA();
+                break;
+            case 0x2:
+                this.STMDAW();
+                break;
+            case 0x3:
+                this.LDMDAW();
+                break;
+            case 0x4:
+                this.STMDAG();
+                break;
+            case 0x5:
+                this.LDMDAG();
+                break;
+            case 0x6:
+                this.STMDAWG();
+                break;
+            case 0x7:
+                this.LDMDAWG();
+                break;
+            case 0x8:
+                this.STMIA();
+                break;
+            case 0x9:
+                this.LDMIA();
+                break;
+            case 0xa:
+                this.STMIAW();
+                break;
+            case 0xb:
+                this.LDMIAW();
+                break;
+            case 0xc:
+                this.STMIAG();
+                break;
+            case 0xd:
+                this.LDMIAG();
+                break;
+            case 0xe:
+                this.STMIAWG();
+                break;
+            case 0xf:
+                this.LDMIAWG();
+                break;
+            case 0x10:
+                this.STMDB();
+                break;
+            case 0x11:
+                this.LDMDB();
+                break;
+            case 0x12:
+                this.STMDBW();
+                break;
+            case 0x13:
+                this.LDMDBW();
+                break;
+            case 0x14:
+                this.STMDBG();
+                break;
+            case 0x15:
+                this.LDMDBG();
+                break;
+            case 0x16:
+                this.STMDBWG();
+                break;
+            case 0x17:
+                this.LDMDBWG();
+                break;
+            case 0x18:
+                this.STMIB();
+                break;
+            case 0x19:
+                this.LDMIB();
+                break;
+            case 0x1a:
+                this.STMIBW();
+                break;
+            case 0x1b:
+                this.LDMIBW();
+                break;
+            case 0x1c:
+                this.STMIBG();
+                break;
+            case 0x1d:
+                this.LDMIBG();
+                break;
+            case 0x1e:
+                this.STMIBWG();
+                break;
+            default:
+                this.LDMIBWG();
+        }
     }
-    return data | 0;
-};
-ARMInstructionSet.prototype.operand2OP_DataProcessing3 = function () {
-    var data = 0;
-    switch ((this.execute >> 5) & 0x3) {
-        case 0:
-            data = this.llr() | 0;
-            break;
-        case 1:
-            data = this.lrr() | 0;
-            break;
-        case 2:
-            data = this.arr() | 0;
-            break;
-        default:
-            data = this.rrr() | 0;
+    SWP() {
+        var base = this.read16OffsetRegister() | 0;
+        var data = this.CPUCore.read32(base | 0) | 0;
+        //Clock a cycle for the processing delaying the CPU:
+        this.wait.CPUInternalSingleCyclePrefetch();
+        this.CPUCore.write32(base | 0, this.read0OffsetRegister() | 0);
+        this.guard12OffsetRegisterWrite(data | 0);
     }
-    return data | 0;
-};
-ARMInstructionSet.prototype.operand2OP_DataProcessing4 = function () {
-    var data = 0;
-    switch ((this.execute >> 5) & 0x3) {
-        case 0:
-            data = this.llrs() | 0;
-            break;
-        case 1:
-            data = this.lrrs() | 0;
-            break;
-        case 2:
-            data = this.arrs() | 0;
-            break;
-        default:
-            data = this.rrrs() | 0;
+    SWPB() {
+        var base = this.read16OffsetRegister() | 0;
+        var data = this.CPUCore.read8(base | 0) | 0;
+        //Clock a cycle for the processing delaying the CPU:
+        this.wait.CPUInternalSingleCyclePrefetch();
+        this.CPUCore.write8(base | 0, this.read0OffsetRegister() | 0);
+        this.guard12OffsetRegisterWrite(data | 0);
     }
-    return data | 0;
-};
-ARMInstructionSet.prototype.operand2OP_LoadStoreOffsetGen = function () {
-    var data = 0;
-    switch ((this.execute >> 5) & 0x3) {
-        case 0:
-            data = this.lli() | 0;
-            break;
-        case 1:
-            data = this.lri() | 0;
-            break;
-        case 2:
-            data = this.ari() | 0;
-            break;
-        default:
-            data = this.rri() | 0;
+    SWI() {
+        //Software Interrupt:
+        this.CPUCore.SWI();
     }
-    return data | 0;
-};
-ARMInstructionSet.prototype.operand2OP_LoadStoreOperandDetermine = function () {
-    var offset = 0;
-    if ((this.execute & 0x400000) == 0) {
-        offset = this.read0OffsetRegister() | 0;
-    } else {
-        offset = ((this.execute & 0xf00) >> 4) | (this.execute & 0xf);
+    UNDEFINED() {
+        //Undefined Exception:
+        this.CPUCore.UNDEFINED();
     }
-    return offset | 0;
-};
-ARMInstructionSet.prototype.operand2OP_LoadStorePostTUser = function (offset) {
-    offset = offset | 0;
-    var base = this.read16OffsetUserRegister() | 0;
-    if ((this.execute & 0x800000) == 0) {
-        offset = ((base | 0) - (offset | 0)) | 0;
-    } else {
-        offset = ((base | 0) + (offset | 0)) | 0;
+    operand2OP_DataProcessing1() {
+        var data = 0;
+        switch ((this.execute & 0x2000060) >> 5) {
+            case 0:
+                data = this.lli() | 0;
+                break;
+            case 1:
+                data = this.lri() | 0;
+                break;
+            case 2:
+                data = this.ari() | 0;
+                break;
+            case 3:
+                data = this.rri() | 0;
+                break;
+            default:
+                data = this.imm() | 0;
+        }
+        return data | 0;
     }
-    this.guard16OffsetUserRegisterWrite(offset | 0);
-    return base | 0;
-};
-ARMInstructionSet.prototype.operand2OP_LoadStorePostTNormal = function (offset) {
-    offset = offset | 0;
-    var base = this.read16OffsetRegister() | 0;
-    if ((this.execute & 0x800000) == 0) {
-        offset = ((base | 0) - (offset | 0)) | 0;
-    } else {
-        offset = ((base | 0) + (offset | 0)) | 0;
+    operand2OP_DataProcessing2() {
+        var data = 0;
+        switch ((this.execute & 0x2000060) >> 5) {
+            case 0:
+                data = this.llis() | 0;
+                break;
+            case 1:
+                data = this.lris() | 0;
+                break;
+            case 2:
+                data = this.aris() | 0;
+                break;
+            case 3:
+                data = this.rris() | 0;
+                break;
+            default:
+                data = this.imms() | 0;
+        }
+        return data | 0;
     }
-    this.guard16OffsetRegisterWrite(offset | 0);
-    return base | 0;
-};
-ARMInstructionSet.prototype.operand2OP_LoadStoreNotT = function (offset) {
-    offset = offset | 0;
-    var base = this.read16OffsetRegister() | 0;
-    if ((this.execute & 0x800000) == 0) {
-        offset = ((base | 0) - (offset | 0)) | 0;
-    } else {
-        offset = ((base | 0) + (offset | 0)) | 0;
+    operand2OP_DataProcessing3() {
+        var data = 0;
+        switch ((this.execute >> 5) & 0x3) {
+            case 0:
+                data = this.llr() | 0;
+                break;
+            case 1:
+                data = this.lrr() | 0;
+                break;
+            case 2:
+                data = this.arr() | 0;
+                break;
+            default:
+                data = this.rrr() | 0;
+        }
+        return data | 0;
     }
-    if ((this.execute & 0x200000) != 0) {
+    operand2OP_DataProcessing4() {
+        var data = 0;
+        switch ((this.execute >> 5) & 0x3) {
+            case 0:
+                data = this.llrs() | 0;
+                break;
+            case 1:
+                data = this.lrrs() | 0;
+                break;
+            case 2:
+                data = this.arrs() | 0;
+                break;
+            default:
+                data = this.rrrs() | 0;
+        }
+        return data | 0;
+    }
+    operand2OP_LoadStoreOffsetGen() {
+        var data = 0;
+        switch ((this.execute >> 5) & 0x3) {
+            case 0:
+                data = this.lli() | 0;
+                break;
+            case 1:
+                data = this.lri() | 0;
+                break;
+            case 2:
+                data = this.ari() | 0;
+                break;
+            default:
+                data = this.rri() | 0;
+        }
+        return data | 0;
+    }
+    operand2OP_LoadStoreOperandDetermine() {
+        var offset = 0;
+        if ((this.execute & 0x400000) == 0) {
+            offset = this.read0OffsetRegister() | 0;
+        } else {
+            offset = ((this.execute & 0xf00) >> 4) | (this.execute & 0xf);
+        }
+        return offset | 0;
+    }
+    operand2OP_LoadStorePostTUser(offset) {
+        offset = offset | 0;
+        var base = this.read16OffsetUserRegister() | 0;
+        if ((this.execute & 0x800000) == 0) {
+            offset = ((base | 0) - (offset | 0)) | 0;
+        } else {
+            offset = ((base | 0) + (offset | 0)) | 0;
+        }
+        this.guard16OffsetUserRegisterWrite(offset | 0);
+        return base | 0;
+    }
+    operand2OP_LoadStorePostTNormal(offset) {
+        offset = offset | 0;
+        var base = this.read16OffsetRegister() | 0;
+        if ((this.execute & 0x800000) == 0) {
+            offset = ((base | 0) - (offset | 0)) | 0;
+        } else {
+            offset = ((base | 0) + (offset | 0)) | 0;
+        }
         this.guard16OffsetRegisterWrite(offset | 0);
+        return base | 0;
     }
-    return offset | 0;
-};
-ARMInstructionSet.prototype.operand2OP_LoadStore1 = function () {
-    return this.operand2OP_LoadStorePostTNormal(this.operand2OP_LoadStoreOperandDetermine() | 0) | 0;
-};
-ARMInstructionSet.prototype.operand2OP_LoadStore2 = function () {
-    return this.operand2OP_LoadStoreNotT(this.operand2OP_LoadStoreOperandDetermine() | 0) | 0;
-};
-ARMInstructionSet.prototype.operand2OP_LoadStore3Normal = function () {
-    return this.operand2OP_LoadStorePostTNormal(this.execute & 0xfff) | 0;
-};
-ARMInstructionSet.prototype.operand2OP_LoadStore3User = function () {
-    return this.operand2OP_LoadStorePostTUser(this.execute & 0xfff) | 0;
-};
-ARMInstructionSet.prototype.operand2OP_LoadStore4 = function () {
-    return this.operand2OP_LoadStoreNotT(this.execute & 0xfff) | 0;
-};
-ARMInstructionSet.prototype.operand2OP_LoadStore5Normal = function () {
-    return this.operand2OP_LoadStorePostTNormal(this.operand2OP_LoadStoreOffsetGen() | 0) | 0;
-};
-ARMInstructionSet.prototype.operand2OP_LoadStore5User = function () {
-    return this.operand2OP_LoadStorePostTUser(this.operand2OP_LoadStoreOffsetGen() | 0) | 0;
-};
-ARMInstructionSet.prototype.operand2OP_LoadStore6 = function () {
-    return this.operand2OP_LoadStoreNotT(this.operand2OP_LoadStoreOffsetGen() | 0) | 0;
-};
-ARMInstructionSet.prototype.lli = function () {
-    //Get the register data to be shifted:
-    var register = this.read0OffsetRegister() | 0;
-    //Shift the register data left:
-    var shifter = (this.execute >> 7) & 0x1f;
-    return register << (shifter | 0);
-};
-ARMInstructionSet.prototype.llis = function () {
-    //Get the register data to be shifted:
-    var register = this.read0OffsetRegister() | 0;
-    //Get the shift amount:
-    var shifter = (this.execute >> 7) & 0x1f;
-    //Check to see if we need to update CPSR:
-    if ((shifter | 0) > 0) {
-        this.branchFlags.setCarry(register << (((shifter | 0) - 1) | 0));
+    operand2OP_LoadStoreNotT(offset) {
+        offset = offset | 0;
+        var base = this.read16OffsetRegister() | 0;
+        if ((this.execute & 0x800000) == 0) {
+            offset = ((base | 0) - (offset | 0)) | 0;
+        } else {
+            offset = ((base | 0) + (offset | 0)) | 0;
+        }
+        if ((this.execute & 0x200000) != 0) {
+            this.guard16OffsetRegisterWrite(offset | 0);
+        }
+        return offset | 0;
     }
-    //Shift the register data left:
-    return register << (shifter | 0);
-};
-ARMInstructionSet.prototype.llr = function () {
-    //Logical Left Shift with Register:
-    //Get the register data to be shifted:
-    var register = this.read0OffsetRegister() | 0;
-    //Clock a cycle for the shift delaying the CPU:
-    this.wait.CPUInternalSingleCyclePrefetch();
-    //Shift the register data left:
-    var shifter = this.read8OffsetRegister() & 0xff;
-    if ((shifter | 0) < 0x20) {
-        register = register << (shifter | 0);
-    } else {
-        register = 0;
+    operand2OP_LoadStore1() {
+        return this.operand2OP_LoadStorePostTNormal(this.operand2OP_LoadStoreOperandDetermine() | 0) | 0;
     }
-    return register | 0;
-};
-ARMInstructionSet.prototype.llrs = function () {
-    //Logical Left Shift with Register and CPSR:
-    //Get the register data to be shifted:
-    var register = this.read0OffsetRegister() | 0;
-    //Clock a cycle for the shift delaying the CPU:
-    this.wait.CPUInternalSingleCyclePrefetch();
-    //Get the shift amount:
-    var shifter = this.read8OffsetRegister() & 0xff;
-    //Check to see if we need to update CPSR:
-    if ((shifter | 0) > 0) {
-        if ((shifter | 0) < 0x20) {
-            //Shift the register data left:
+    operand2OP_LoadStore2() {
+        return this.operand2OP_LoadStoreNotT(this.operand2OP_LoadStoreOperandDetermine() | 0) | 0;
+    }
+    operand2OP_LoadStore3Normal() {
+        return this.operand2OP_LoadStorePostTNormal(this.execute & 0xfff) | 0;
+    }
+    operand2OP_LoadStore3User() {
+        return this.operand2OP_LoadStorePostTUser(this.execute & 0xfff) | 0;
+    }
+    operand2OP_LoadStore4() {
+        return this.operand2OP_LoadStoreNotT(this.execute & 0xfff) | 0;
+    }
+    operand2OP_LoadStore5Normal() {
+        return this.operand2OP_LoadStorePostTNormal(this.operand2OP_LoadStoreOffsetGen() | 0) | 0;
+    }
+    operand2OP_LoadStore5User() {
+        return this.operand2OP_LoadStorePostTUser(this.operand2OP_LoadStoreOffsetGen() | 0) | 0;
+    }
+    operand2OP_LoadStore6() {
+        return this.operand2OP_LoadStoreNotT(this.operand2OP_LoadStoreOffsetGen() | 0) | 0;
+    }
+    lli() {
+        //Get the register data to be shifted:
+        var register = this.read0OffsetRegister() | 0;
+        //Shift the register data left:
+        var shifter = (this.execute >> 7) & 0x1f;
+        return register << (shifter | 0);
+    }
+    llis() {
+        //Get the register data to be shifted:
+        var register = this.read0OffsetRegister() | 0;
+        //Get the shift amount:
+        var shifter = (this.execute >> 7) & 0x1f;
+        //Check to see if we need to update CPSR:
+        if ((shifter | 0) > 0) {
             this.branchFlags.setCarry(register << (((shifter | 0) - 1) | 0));
+        }
+        //Shift the register data left:
+        return register << (shifter | 0);
+    }
+    llr() {
+        //Logical Left Shift with Register:
+        //Get the register data to be shifted:
+        var register = this.read0OffsetRegister() | 0;
+        //Clock a cycle for the shift delaying the CPU:
+        this.wait.CPUInternalSingleCyclePrefetch();
+        //Shift the register data left:
+        var shifter = this.read8OffsetRegister() & 0xff;
+        if ((shifter | 0) < 0x20) {
             register = register << (shifter | 0);
         } else {
-            if ((shifter | 0) == 0x20) {
-                //Shift bit 0 into carry:
-                this.branchFlags.setCarry(register << 31);
-            } else {
-                //Everything Zero'd:
-                this.branchFlags.setCarryFalse();
-            }
             register = 0;
         }
+        return register | 0;
     }
-    //If shift is 0, just return the register without mod:
-    return register | 0;
-};
-ARMInstructionSet.prototype.lri = function () {
-    //Get the register data to be shifted:
-    var register = this.read0OffsetRegister() | 0;
-    //Shift the register data right logically:
-    var shifter = (this.execute >> 7) & 0x1f;
-    if ((shifter | 0) == 0) {
-        //Return 0:
-        register = 0;
-    } else {
-        register = (register >>> (shifter | 0)) | 0;
+    llrs() {
+        //Logical Left Shift with Register and CPSR:
+        //Get the register data to be shifted:
+        var register = this.read0OffsetRegister() | 0;
+        //Clock a cycle for the shift delaying the CPU:
+        this.wait.CPUInternalSingleCyclePrefetch();
+        //Get the shift amount:
+        var shifter = this.read8OffsetRegister() & 0xff;
+        //Check to see if we need to update CPSR:
+        if ((shifter | 0) > 0) {
+            if ((shifter | 0) < 0x20) {
+                //Shift the register data left:
+                this.branchFlags.setCarry(register << (((shifter | 0) - 1) | 0));
+                register = register << (shifter | 0);
+            } else {
+                if ((shifter | 0) == 0x20) {
+                    //Shift bit 0 into carry:
+                    this.branchFlags.setCarry(register << 31);
+                } else {
+                    //Everything Zero'd:
+                    this.branchFlags.setCarryFalse();
+                }
+                register = 0;
+            }
+        }
+        //If shift is 0, just return the register without mod:
+        return register | 0;
     }
-    return register | 0;
-};
-ARMInstructionSet.prototype.lris = function () {
-    //Get the register data to be shifted:
-    var register = this.read0OffsetRegister() | 0;
-    //Get the shift amount:
-    var shifter = (this.execute >> 7) & 0x1f;
-    //Check to see if we need to update CPSR:
-    if ((shifter | 0) > 0) {
-        this.branchFlags.setCarry((register >> (((shifter | 0) - 1) | 0)) << 31);
+    lri() {
+        //Get the register data to be shifted:
+        var register = this.read0OffsetRegister() | 0;
         //Shift the register data right logically:
-        register = (register >>> (shifter | 0)) | 0;
-    } else {
-        this.branchFlags.setCarry(register | 0);
-        //Return 0:
-        register = 0;
+        var shifter = (this.execute >> 7) & 0x1f;
+        if ((shifter | 0) == 0) {
+            //Return 0:
+            register = 0;
+        } else {
+            register = (register >>> (shifter | 0)) | 0;
+        }
+        return register | 0;
     }
-    return register | 0;
-};
-ARMInstructionSet.prototype.lrr = function () {
-    //Get the register data to be shifted:
-    var register = this.read0OffsetRegister() | 0;
-    //Clock a cycle for the shift delaying the CPU:
-    this.wait.CPUInternalSingleCyclePrefetch();
-    //Shift the register data right logically:
-    var shifter = this.read8OffsetRegister() & 0xff;
-    if ((shifter | 0) < 0x20) {
-        register = (register >>> (shifter | 0)) | 0;
-    } else {
-        register = 0;
-    }
-    return register | 0;
-};
-ARMInstructionSet.prototype.lrrs = function () {
-    //Logical Right Shift with Register and CPSR:
-    //Get the register data to be shifted:
-    var register = this.read0OffsetRegister() | 0;
-    //Clock a cycle for the shift delaying the CPU:
-    this.wait.CPUInternalSingleCyclePrefetch();
-    //Get the shift amount:
-    var shifter = this.read8OffsetRegister() & 0xff;
-    //Check to see if we need to update CPSR:
-    if ((shifter | 0) > 0) {
-        if ((shifter | 0) < 0x20) {
-            //Shift the register data right logically:
+    lris() {
+        //Get the register data to be shifted:
+        var register = this.read0OffsetRegister() | 0;
+        //Get the shift amount:
+        var shifter = (this.execute >> 7) & 0x1f;
+        //Check to see if we need to update CPSR:
+        if ((shifter | 0) > 0) {
             this.branchFlags.setCarry((register >> (((shifter | 0) - 1) | 0)) << 31);
+            //Shift the register data right logically:
             register = (register >>> (shifter | 0)) | 0;
         } else {
-            if ((shifter | 0) == 0x20) {
-                //Shift bit 31 into carry:
-                this.branchFlags.setCarry(register | 0);
-            } else {
-                //Everything Zero'd:
-                this.branchFlags.setCarryFalse();
-            }
+            this.branchFlags.setCarry(register | 0);
+            //Return 0:
             register = 0;
         }
+        return register | 0;
     }
-    //If shift is 0, just return the register without mod:
-    return register | 0;
-};
-ARMInstructionSet.prototype.ari = function () {
-    //Get the register data to be shifted:
-    var register = this.read0OffsetRegister() | 0;
-    //Get the shift amount:
-    var shifter = (this.execute >> 7) & 0x1f;
-    if ((shifter | 0) == 0) {
-        //Shift full length if shifter is zero:
-        shifter = 0x1f;
-    }
-    //Shift the register data right:
-    return register >> (shifter | 0);
-};
-ARMInstructionSet.prototype.aris = function () {
-    //Get the register data to be shifted:
-    var register = this.read0OffsetRegister() | 0;
-    //Get the shift amount:
-    var shifter = (this.execute >> 7) & 0x1f;
-    //Check to see if we need to update CPSR:
-    if ((shifter | 0) > 0) {
-        this.branchFlags.setCarry((register >> (((shifter | 0) - 1) | 0)) << 31);
-    } else {
-        //Shift full length if shifter is zero:
-        shifter = 0x1f;
-        this.branchFlags.setCarry(register | 0);
-    }
-    //Shift the register data right:
-    return register >> (shifter | 0);
-};
-ARMInstructionSet.prototype.arr = function () {
-    //Arithmetic Right Shift with Register:
-    //Get the register data to be shifted:
-    var register = this.read0OffsetRegister() | 0;
-    //Clock a cycle for the shift delaying the CPU:
-    this.wait.CPUInternalSingleCyclePrefetch();
-    //Shift the register data right:
-    return register >> Math.min(this.read8OffsetRegister() & 0xff, 0x1f);
-};
-ARMInstructionSet.prototype.arrs = function () {
-    //Arithmetic Right Shift with Register and CPSR:
-    //Get the register data to be shifted:
-    var register = this.read0OffsetRegister() | 0;
-    //Clock a cycle for the shift delaying the CPU:
-    this.wait.CPUInternalSingleCyclePrefetch();
-    //Get the shift amount:
-    var shifter = this.read8OffsetRegister() & 0xff;
-    //Check to see if we need to update CPSR:
-    if ((shifter | 0) > 0) {
+    lrr() {
+        //Get the register data to be shifted:
+        var register = this.read0OffsetRegister() | 0;
+        //Clock a cycle for the shift delaying the CPU:
+        this.wait.CPUInternalSingleCyclePrefetch();
+        //Shift the register data right logically:
+        var shifter = this.read8OffsetRegister() & 0xff;
         if ((shifter | 0) < 0x20) {
-            //Shift the register data right arithmetically:
-            this.branchFlags.setCarry((register >> (((shifter | 0) - 1) | 0)) << 31);
-            register = register >> (shifter | 0);
+            register = (register >>> (shifter | 0)) | 0;
         } else {
-            //Set all bits with bit 31:
-            this.branchFlags.setCarry(register | 0);
-            register = register >> 0x1f;
+            register = 0;
         }
+        return register | 0;
     }
-    //If shift is 0, just return the register without mod:
-    return register | 0;
-};
-ARMInstructionSet.prototype.rri = function () {
-    //Rotate Right with Immediate:
-    //Get the register data to be shifted:
-    var register = this.read0OffsetRegister() | 0;
-    //Rotate the register right:
-    var shifter = (this.execute >> 7) & 0x1f;
-    if ((shifter | 0) > 0) {
-        //ROR
-        register = (register << (0x20 - (shifter | 0))) | (register >>> (shifter | 0));
-    } else {
-        //RRX
-        register = (this.branchFlags.getCarry() & 0x80000000) | (register >>> 0x1);
+    lrrs() {
+        //Logical Right Shift with Register and CPSR:
+        //Get the register data to be shifted:
+        var register = this.read0OffsetRegister() | 0;
+        //Clock a cycle for the shift delaying the CPU:
+        this.wait.CPUInternalSingleCyclePrefetch();
+        //Get the shift amount:
+        var shifter = this.read8OffsetRegister() & 0xff;
+        //Check to see if we need to update CPSR:
+        if ((shifter | 0) > 0) {
+            if ((shifter | 0) < 0x20) {
+                //Shift the register data right logically:
+                this.branchFlags.setCarry((register >> (((shifter | 0) - 1) | 0)) << 31);
+                register = (register >>> (shifter | 0)) | 0;
+            } else {
+                if ((shifter | 0) == 0x20) {
+                    //Shift bit 31 into carry:
+                    this.branchFlags.setCarry(register | 0);
+                } else {
+                    //Everything Zero'd:
+                    this.branchFlags.setCarryFalse();
+                }
+                register = 0;
+            }
+        }
+        //If shift is 0, just return the register without mod:
+        return register | 0;
     }
-    return register | 0;
-};
-ARMInstructionSet.prototype.rris = function () {
-    //Rotate Right with Immediate and CPSR:
-    //Get the register data to be shifted:
-    var register = this.read0OffsetRegister() | 0;
-    //Rotate the register right:
-    var shifter = (this.execute >> 7) & 0x1f;
-    if ((shifter | 0) > 0) {
-        //ROR
-        this.branchFlags.setCarry((register >> (((shifter | 0) - 1) | 0)) << 31);
-        register = (register << (0x20 - (shifter | 0))) | (register >>> (shifter | 0));
-    } else {
-        //RRX
-        var rrxValue = (this.branchFlags.getCarry() & 0x80000000) | (register >>> 0x1);
-        this.branchFlags.setCarry(register << 31);
-        register = rrxValue | 0;
+    ari() {
+        //Get the register data to be shifted:
+        var register = this.read0OffsetRegister() | 0;
+        //Get the shift amount:
+        var shifter = (this.execute >> 7) & 0x1f;
+        if ((shifter | 0) == 0) {
+            //Shift full length if shifter is zero:
+            shifter = 0x1f;
+        }
+        //Shift the register data right:
+        return register >> (shifter | 0);
     }
-    return register | 0;
-};
-ARMInstructionSet.prototype.rrr = function () {
-    //Rotate Right with Register:
-    //Get the register data to be shifted:
-    var register = this.read0OffsetRegister() | 0;
-    //Clock a cycle for the shift delaying the CPU:
-    this.wait.CPUInternalSingleCyclePrefetch();
-    //Rotate the register right:
-    var shifter = this.read8OffsetRegister() & 0x1f;
-    if ((shifter | 0) > 0) {
-        //ROR
-        register = (register << (0x20 - (shifter | 0))) | (register >>> (shifter | 0));
+    aris() {
+        //Get the register data to be shifted:
+        var register = this.read0OffsetRegister() | 0;
+        //Get the shift amount:
+        var shifter = (this.execute >> 7) & 0x1f;
+        //Check to see if we need to update CPSR:
+        if ((shifter | 0) > 0) {
+            this.branchFlags.setCarry((register >> (((shifter | 0) - 1) | 0)) << 31);
+        } else {
+            //Shift full length if shifter is zero:
+            shifter = 0x1f;
+            this.branchFlags.setCarry(register | 0);
+        }
+        //Shift the register data right:
+        return register >> (shifter | 0);
     }
-    //If shift is 0, just return the register without mod:
-    return register | 0;
-};
-ARMInstructionSet.prototype.rrrs = function () {
-    //Rotate Right with Register and CPSR:
-    //Get the register data to be shifted:
-    var register = this.read0OffsetRegister() | 0;
-    //Clock a cycle for the shift delaying the CPU:
-    this.wait.CPUInternalSingleCyclePrefetch();
-    //Rotate the register right:
-    var shifter = this.read8OffsetRegister() & 0xff;
-    if ((shifter | 0) > 0) {
-        shifter = shifter & 0x1f;
+    arr() {
+        //Arithmetic Right Shift with Register:
+        //Get the register data to be shifted:
+        var register = this.read0OffsetRegister() | 0;
+        //Clock a cycle for the shift delaying the CPU:
+        this.wait.CPUInternalSingleCyclePrefetch();
+        //Shift the register data right:
+        return register >> Math.min(this.read8OffsetRegister() & 0xff, 0x1f);
+    }
+    arrs() {
+        //Arithmetic Right Shift with Register and CPSR:
+        //Get the register data to be shifted:
+        var register = this.read0OffsetRegister() | 0;
+        //Clock a cycle for the shift delaying the CPU:
+        this.wait.CPUInternalSingleCyclePrefetch();
+        //Get the shift amount:
+        var shifter = this.read8OffsetRegister() & 0xff;
+        //Check to see if we need to update CPSR:
+        if ((shifter | 0) > 0) {
+            if ((shifter | 0) < 0x20) {
+                //Shift the register data right arithmetically:
+                this.branchFlags.setCarry((register >> (((shifter | 0) - 1) | 0)) << 31);
+                register = register >> (shifter | 0);
+            } else {
+                //Set all bits with bit 31:
+                this.branchFlags.setCarry(register | 0);
+                register = register >> 0x1f;
+            }
+        }
+        //If shift is 0, just return the register without mod:
+        return register | 0;
+    }
+    rri() {
+        //Rotate Right with Immediate:
+        //Get the register data to be shifted:
+        var register = this.read0OffsetRegister() | 0;
+        //Rotate the register right:
+        var shifter = (this.execute >> 7) & 0x1f;
+        if ((shifter | 0) > 0) {
+            //ROR
+            register = (register << (0x20 - (shifter | 0))) | (register >>> (shifter | 0));
+        } else {
+            //RRX
+            register = (this.branchFlags.getCarry() & 0x80000000) | (register >>> 0x1);
+        }
+        return register | 0;
+    }
+    rris() {
+        //Rotate Right with Immediate and CPSR:
+        //Get the register data to be shifted:
+        var register = this.read0OffsetRegister() | 0;
+        //Rotate the register right:
+        var shifter = (this.execute >> 7) & 0x1f;
         if ((shifter | 0) > 0) {
             //ROR
             this.branchFlags.setCarry((register >> (((shifter | 0) - 1) | 0)) << 31);
             register = (register << (0x20 - (shifter | 0))) | (register >>> (shifter | 0));
         } else {
-            //No shift, but make carry set to bit 31:
-            this.branchFlags.setCarry(register | 0);
+            //RRX
+            var rrxValue = (this.branchFlags.getCarry() & 0x80000000) | (register >>> 0x1);
+            this.branchFlags.setCarry(register << 31);
+            register = rrxValue | 0;
         }
+        return register | 0;
     }
-    //If shift is 0, just return the register without mod:
-    return register | 0;
-};
-ARMInstructionSet.prototype.imm = function () {
-    //Get the immediate data to be shifted:
-    var immediate = this.execute & 0xff;
-    //Rotate the immediate right:
-    var shifter = (this.execute >> 7) & 0x1e;
-    if ((shifter | 0) > 0) {
-        immediate = (immediate << (0x20 - (shifter | 0))) | (immediate >>> (shifter | 0));
+    rrr() {
+        //Rotate Right with Register:
+        //Get the register data to be shifted:
+        var register = this.read0OffsetRegister() | 0;
+        //Clock a cycle for the shift delaying the CPU:
+        this.wait.CPUInternalSingleCyclePrefetch();
+        //Rotate the register right:
+        var shifter = this.read8OffsetRegister() & 0x1f;
+        if ((shifter | 0) > 0) {
+            //ROR
+            register = (register << (0x20 - (shifter | 0))) | (register >>> (shifter | 0));
+        }
+        //If shift is 0, just return the register without mod:
+        return register | 0;
     }
-    return immediate | 0;
-};
-ARMInstructionSet.prototype.imms = function () {
-    //Get the immediate data to be shifted:
-    var immediate = this.execute & 0xff;
-    //Rotate the immediate right:
-    var shifter = (this.execute >> 7) & 0x1e;
-    if ((shifter | 0) > 0) {
-        immediate = (immediate << (0x20 - (shifter | 0))) | (immediate >>> (shifter | 0));
-        this.branchFlags.setCarry(immediate | 0);
+    rrrs() {
+        //Rotate Right with Register and CPSR:
+        //Get the register data to be shifted:
+        var register = this.read0OffsetRegister() | 0;
+        //Clock a cycle for the shift delaying the CPU:
+        this.wait.CPUInternalSingleCyclePrefetch();
+        //Rotate the register right:
+        var shifter = this.read8OffsetRegister() & 0xff;
+        if ((shifter | 0) > 0) {
+            shifter = shifter & 0x1f;
+            if ((shifter | 0) > 0) {
+                //ROR
+                this.branchFlags.setCarry((register >> (((shifter | 0) - 1) | 0)) << 31);
+                register = (register << (0x20 - (shifter | 0))) | (register >>> (shifter | 0));
+            } else {
+                //No shift, but make carry set to bit 31:
+                this.branchFlags.setCarry(register | 0);
+            }
+        }
+        //If shift is 0, just return the register without mod:
+        return register | 0;
     }
-    return immediate | 0;
-};
-ARMInstructionSet.prototype.rc = function () {
-    return this.branchFlags.getNZCV() | this.CPUCore.modeFlags;
-};
-ARMInstructionSet.prototype.rs = function () {
-    var spsr = 0;
-    switch (this.CPUCore.modeFlags & 0x1f) {
-        case 0x12: //IRQ
-            spsr = this.CPUCore.SPSR[1] | 0;
-            break;
-        case 0x13: //Supervisor
-            spsr = this.CPUCore.SPSR[2] | 0;
-            break;
-        case 0x11: //FIQ
-            spsr = this.CPUCore.SPSR[0] | 0;
-            break;
-        case 0x17: //Abort
-            spsr = this.CPUCore.SPSR[3] | 0;
-            break;
-        case 0x1b: //Undefined
-            spsr = this.CPUCore.SPSR[4] | 0;
-            break;
-        default:
-            //Instruction hit an invalid SPSR request:
-            return this.rc() | 0;
+    imm() {
+        //Get the immediate data to be shifted:
+        var immediate = this.execute & 0xff;
+        //Rotate the immediate right:
+        var shifter = (this.execute >> 7) & 0x1e;
+        if ((shifter | 0) > 0) {
+            immediate = (immediate << (0x20 - (shifter | 0))) | (immediate >>> (shifter | 0));
+        }
+        return immediate | 0;
     }
-    return ((spsr & 0xf00) << 20) | (spsr & 0xff);
-};
+    imms() {
+        //Get the immediate data to be shifted:
+        var immediate = this.execute & 0xff;
+        //Rotate the immediate right:
+        var shifter = (this.execute >> 7) & 0x1e;
+        if ((shifter | 0) > 0) {
+            immediate = (immediate << (0x20 - (shifter | 0))) | (immediate >>> (shifter | 0));
+            this.branchFlags.setCarry(immediate | 0);
+        }
+        return immediate | 0;
+    }
+    rc() {
+        return this.branchFlags.getNZCV() | this.CPUCore.modeFlags;
+    }
+    rs() {
+        var spsr = 0;
+        switch (this.CPUCore.modeFlags & 0x1f) {
+            case 0x12: //IRQ
+                spsr = this.CPUCore.SPSR[1] | 0;
+                break;
+            case 0x13: //Supervisor
+                spsr = this.CPUCore.SPSR[2] | 0;
+                break;
+            case 0x11: //FIQ
+                spsr = this.CPUCore.SPSR[0] | 0;
+                break;
+            case 0x17: //Abort
+                spsr = this.CPUCore.SPSR[3] | 0;
+                break;
+            case 0x1b: //Undefined
+                spsr = this.CPUCore.SPSR[4] | 0;
+                break;
+            default:
+                //Instruction hit an invalid SPSR request:
+                return this.rc() | 0;
+        }
+        return ((spsr & 0xf00) << 20) | (spsr & 0xff);
+    }
+}
+
 function compileARMInstructionDecodeMap() {
     var pseudoCodes = [
         'LDRH',

@@ -8,49 +8,52 @@
 
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-function GameBoyAdvanceGPIOChip() {
-    this.type = 0;
-    this.data = 0;
-    this.direction = 0;
-    this.readWrite = 0;
-}
-GameBoyAdvanceGPIOChip.prototype.getType = function () {
-    return this.type | 0;
-};
-GameBoyAdvanceGPIOChip.prototype.setType = function (type) {
-    type = type | 0;
-    this.type = type | 0;
-};
-GameBoyAdvanceGPIOChip.prototype.read = function (address) {
-    address = address | 0;
-    var data = 0;
-    if (this.readWrite | 0) {
+
+class GameBoyAdvanceGPIOChip {
+    constructor() {
+        this.type = 0;
+        this.data = 0;
+        this.direction = 0;
+        this.readWrite = 0;
+    }
+    getType() {
+        return this.type | 0;
+    }
+    setType(type) {
+        type = type | 0;
+        this.type = type | 0;
+    }
+    read(address) {
+        address = address | 0;
+        var data = 0;
+        if (this.readWrite | 0) {
+            switch (address & 0xf) {
+                case 0x4:
+                    this.readTick();
+                    data = this.data | 0;
+                    break;
+                case 0x6:
+                    data = this.direction | 0;
+                    break;
+                case 0x8:
+                    data = this.readWrite | 0;
+            }
+        }
+        return data | 0;
+    }
+    write(address, data) {
+        address = address | 0;
+        data = data | 0;
         switch (address & 0xf) {
             case 0x4:
-                this.readTick();
-                data = this.data | 0;
+                this.data = data & 0xf;
+                this.writeTick(data | 0);
                 break;
             case 0x6:
-                data = this.direction | 0;
+                this.direction = data & 0xf;
                 break;
             case 0x8:
-                data = this.readWrite | 0;
+                this.readWrite = data & 0x1;
         }
     }
-    return data | 0;
-};
-GameBoyAdvanceGPIOChip.prototype.write = function (address, data) {
-    address = address | 0;
-    data = data | 0;
-    switch (address & 0xf) {
-        case 0x4:
-            this.data = data & 0xf;
-            this.writeTick(data | 0);
-            break;
-        case 0x6:
-            this.direction = data & 0xf;
-            break;
-        case 0x8:
-            this.readWrite = data & 0x1;
-    }
-};
+}
