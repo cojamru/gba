@@ -8,7 +8,7 @@
 
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-var games = {
+const games = {
     advancewars: 'Advance Wars',
     advancewars2: 'Advance Wars 2',
     aladdin: 'Aladdin',
@@ -109,7 +109,7 @@ var games = {
     zelda_past: 'The Legend of Zelda: A Link to the Past',
     zelda_minish: 'The Legend of Zelda: The Minish Cap',
 };
-var IodineGUI = {
+const IodineGUI = {
     Iodine: null,
     Blitter: null,
     coreTimerID: null,
@@ -121,6 +121,21 @@ var IodineGUI = {
     startTime: +new Date().getTime(),
     mixerInput: null,
     currentSpeed: [false, 0],
+    gamepad: {
+        apiID: undefined,
+        timerID: undefined,
+        keybinds: undefined,
+        axes: {
+            last: undefined,
+            cur: [],
+            changed: [],
+        },
+        buttons: {
+            last: undefined,
+            cur: [],
+            changed: [],
+        },
+    },
     defaults: {
         timerRate: 8,
         sound: true,
@@ -279,13 +294,13 @@ function registerBlitterHandler() {
     IodineGUI.Iodine.attachGraphicsFrameHandler(IodineGUI.Blitter);
     IodineGUI.Blitter.attachGfxPostCallback(function () {
         if (IodineGUI.currentSpeed[0]) {
-            var speedDOM = document.getElementById('speed');
+            const speedDOM = document.getElementById('speed');
             speedDOM.textContent = 'Speed: ' + IodineGUI.currentSpeed[1] + '%';
         }
     });
 }
 function registerAudioHandler() {
-    var Mixer = new GlueCodeMixer(document.getElementById('play'));
+    const Mixer = new GlueCodeMixer(document.getElementById('play'));
     IodineGUI.mixerInput = new GlueCodeMixerInput(Mixer);
     IodineGUI.Iodine.attachAudioHandler(IodineGUI.mixerInput);
 }
