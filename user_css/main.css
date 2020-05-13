@@ -47,7 +47,7 @@ ul {
 | Canvas
 |-----------------------------------------
 |
-| Classes are automatically overwritten 
+| Classes are automatically overwritten
 | by the filter styles, therefore only
 | attributes and id's can be used.
 |
@@ -104,7 +104,7 @@ canvas.texturePixelated {
  */
 
 /* top level menu */
-div#menu {
+#menu {
     position: absolute;
     z-index: 1;
     width: 100%;

@@ -5,6 +5,7 @@
     "repository": "github:cojamru/gba",
     "author": "Grant Galitz <grantgalitz@gmail.com>",
     "contributors": [
+        "jsemu2 (https://github.com/jsemu2)",
         "Dmitry <dmitry@cojam.ru> (https://e965.ru)"
     ],
     "license": "MIT",
@@ -25,7 +26,7 @@
     "bugs": {
         "url": "https://github.com/cojamru/gba/issues"
     },
-    "homepage": "https://github.com/cojamru/gba#readme",
+    "homepage": "http://cojamru.github.io/gba/",
     "devDependencies": {
         "husky": "^4.2.5",
         "lint-staged": "^10.2.2",

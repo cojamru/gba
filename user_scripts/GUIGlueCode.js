@@ -439,7 +439,7 @@ function updatePlayButton(isPlaying) {
     if ((isPlaying | 0) == 1) {
         document.getElementById('play').className = 'hide';
         document.getElementById('pause').className = 'show';
-        document.getElementById('menu').className = 'playing';
+        document.getElementById('container').className = 'playing';
         if (!IodineGUI.coreTimerID) {
             startTimer();
         }
@@ -447,7 +447,7 @@ function updatePlayButton(isPlaying) {
     } else {
         document.getElementById('pause').className = 'hide';
         document.getElementById('play').className = 'show';
-        document.getElementById('menu').className = 'paused';
+        document.getElementById('container').className = 'paused';
         if (IodineGUI.coreTimerID) {
             clearInterval(IodineGUI.coreTimerID);
             IodineGUI.coreTimerID = null;
