@@ -1,10 +1,10 @@
 {
-    "bios": "https://blyat.science/graveblood/gba_bios.bin",
+    "bios": "https://cdn.blyat.science/cojam-graveblood/gba_bios.bin",
     "games": [
         {
             "key": "graveblood",
             "title": "Graveblood (demo)",
-            "path": "https://blyat.science/graveblood/graveblood.gba"
+            "path": "https://cdn.blyat.science/cojam-graveblood/graveblood.gba"
         }
     ]
 }
