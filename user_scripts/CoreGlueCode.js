@@ -119,7 +119,7 @@ const parseConfig = data => {
         if (!gameKey && location.hash.substr(1)) {
             gameKey = location.hash.substr(1);
         } else {
-            gameKey = prompt('Please enter the game key. You can find it in the configuration file', 'zelda_past');
+            gameKey = prompt('Please enter the game key. You can find it in the configuration file', 'graveblood');
         }
 
         data.games.forEach(game => {
